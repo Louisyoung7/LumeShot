@@ -1,0 +1,18 @@
+# 构建输出
+build/
+cmake-build-*/
+
+# clangd / IDE 缓存
+.cache/
+.vscode/
+.idea/
+*.user
+
+# Qt / CMake 生成物
+*_autogen/
+moc_*.cpp
+*.moc
+
+# 系统文件与日志
+.DS_Store
+*.log
