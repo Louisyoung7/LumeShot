@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=LumeShot
+GenericName=Screenshot Tool
+GenericName[zh_CN]=截图工具
+Comment=Capture, scroll-stitch and pin screenshots on X11
+Comment[zh_CN]=X11 下的区域截图、滚动长截图与贴图工具
+Exec=lumeshot
+Icon=lumeshot
+Terminal=false
+Categories=Utility;Graphics;
+Keywords=screenshot;capture;snip;pin;截图;长截图;贴图;
+StartupNotify=false
+StartupWMClass=screenshot

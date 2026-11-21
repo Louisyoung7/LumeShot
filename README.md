@@ -102,6 +102,20 @@ cmake --build build -j
 ./build/screenshot
 ```
 
+## 打包 deb
+
+```bash
+./packaging/build-deb.sh                  # 默认版本 0.1.0
+VERSION=0.2.0 ./packaging/build-deb.sh    # 指定版本
+```
+
+产物：`build/deb-out/lumeshot_<版本>_amd64.deb`
+
+- 程序、Qt 运行库和 xcb 插件装到 `/opt/lumeshot`，包内自带，不依赖系统 Qt 版本。
+- `Depends` 由实际链接的库自动计算，已内置的 Qt / ICU 会被排除。
+- 安装：`sudo apt install ./build/deb-out/lumeshot_0.1.0_amd64.deb`
+- 卸载：`sudo apt remove lumeshot`
+
 ## 键盘快捷键
 
 | 场景 | 按键 | 作用 |
