@@ -40,6 +40,7 @@ add_executable(screenshot
     src/ui/longcapturesidebar.cpp
     src/ui/settingsdialog.cpp
     src/platform/globalhotkey.cpp
+    src/platform/autostart.cpp
 )
 
 # src 作为头文件根，源文件里用 "app/xxx.h"、"capture/xxx.h" 标明所属模块

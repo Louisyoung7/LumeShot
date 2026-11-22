@@ -9,6 +9,7 @@ const QString kHotkeyKey = QStringLiteral("capture/hotkey");
 const QString kAutoCopyKey = QStringLiteral("capture/autoCopy");
 const QString kAutoSaveKey = QStringLiteral("capture/autoSave");
 const QString kSaveDirectoryKey = QStringLiteral("capture/saveDirectory");
+const QString kAutostartKey = QStringLiteral("startup/autostart");
 } // namespace
 
 AppSettings::AppSettings()
@@ -34,6 +35,7 @@ AppSettings AppSettings::load()
 
     settings.autoCopy = store.value(kAutoCopyKey, true).toBool();
     settings.autoSave = store.value(kAutoSaveKey, true).toBool();
+    settings.autostart = store.value(kAutostartKey, false).toBool();
     settings.saveDirectory = store.value(kSaveDirectoryKey).toString();
     return settings;
 }
@@ -44,6 +46,7 @@ void AppSettings::save() const
     store.setValue(kHotkeyKey, hotkey.toString(QKeySequence::PortableText));
     store.setValue(kAutoCopyKey, autoCopy);
     store.setValue(kAutoSaveKey, autoSave);
+    store.setValue(kAutostartKey, autostart);
     store.setValue(kSaveDirectoryKey, saveDirectory);
     store.sync();
 }

@@ -8,6 +8,7 @@ struct AppSettings {
     QKeySequence hotkey;
     bool autoCopy = true;
     bool autoSave = true;
+    bool autostart = false;
     QString saveDirectory; // 为空时使用默认目录
 
     AppSettings();

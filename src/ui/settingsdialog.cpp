@@ -26,6 +26,9 @@ SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     m_autoSaveCheck = new QCheckBox(QStringLiteral("截图后自动保存为 PNG"), this);
     m_autoSaveCheck->setChecked(settings.autoSave);
 
+    m_autostartCheck = new QCheckBox(QStringLiteral("开机自动启动"), this);
+    m_autostartCheck->setChecked(settings.autostart);
+
     m_directoryEdit = new QLineEdit(settings.effectiveSaveDirectory(), this);
     m_browseButton = new QPushButton(QStringLiteral("浏览…"), this);
 
@@ -38,6 +41,7 @@ SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     form->addRow(m_autoCopyCheck);
     form->addRow(m_autoSaveCheck);
     form->addRow(QStringLiteral("保存目录"), directoryRow);
+    form->addRow(m_autostartCheck);
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("保存"));
@@ -59,6 +63,7 @@ AppSettings SettingsDialog::settings() const
     result.hotkey = m_hotkeyEdit->keySequence();
     result.autoCopy = m_autoCopyCheck->isChecked();
     result.autoSave = m_autoSaveCheck->isChecked();
+    result.autostart = m_autostartCheck->isChecked();
     result.saveDirectory = m_directoryEdit->text().trimmed();
     return result;
 }

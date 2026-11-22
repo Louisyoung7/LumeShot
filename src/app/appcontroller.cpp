@@ -3,6 +3,7 @@
 #include "capture/screencapture.h"
 #include "capture/scrollcapture.h"
 #include "config/appsettings.h"
+#include "platform/autostart.h"
 #include "platform/globalhotkey.h"
 #include "ui/longcaptureframe.h"
 #include "ui/longcapturepreview.h"
@@ -367,6 +368,9 @@ void AppController::openSettings()
     // 先释放全局热键，否则在输入框里按下旧快捷键会被自己的 grab 拦截，录不进新值
     m_hotkey->suspend();
 
+    // 以实际的自启文件为准，避免配置与实际状态不一致
+    m_settings.autostart = Autostart::isEnabled();
+
     SettingsDialog dialog(m_settings, m_fallbackWindow);
     if (dialog.exec() != QDialog::Accepted) {
         m_hotkey->resume();
@@ -385,14 +389,27 @@ void AppController::openSettings()
     }
 
     m_settings = updated;
+
+    if (updated.autostart != Autostart::isEnabled()
+        && !Autostart::setEnabled(updated.autostart)) {
+        m_settings.autostart = Autostart::isEnabled();
+        m_hotkey->grab(m_settings.hotkey);
+        QMessageBox::warning(
+            m_fallbackWindow, QStringLiteral("开机自启设置失败"),
+            QStringLiteral("无法写入自启文件：\n%1\n设置未保存。")
+                .arg(Autostart::desktopFilePath()));
+        return;
+    }
+
     m_settings.save();
     updateHotkeyLabel();
 
     notify(QStringLiteral("设置已保存"),
-           QStringLiteral("全局快捷键：%1\n自动复制：%2　自动保存：%3")
+           QStringLiteral("全局快捷键：%1\n自动复制：%2　自动保存：%3\n开机自启：%4")
                .arg(m_settings.hotkey.toString(QKeySequence::NativeText),
                     m_settings.autoCopy ? QStringLiteral("开") : QStringLiteral("关"),
-                    m_settings.autoSave ? QStringLiteral("开") : QStringLiteral("关")));
+                    m_settings.autoSave ? QStringLiteral("开") : QStringLiteral("关"),
+                    m_settings.autostart ? QStringLiteral("开") : QStringLiteral("关")));
 }
 
 void AppController::updateHotkeyLabel()

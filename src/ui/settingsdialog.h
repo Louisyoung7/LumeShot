@@ -29,6 +29,7 @@ private:
     QKeySequenceEdit* m_hotkeyEdit = nullptr;
     QCheckBox* m_autoCopyCheck = nullptr;
     QCheckBox* m_autoSaveCheck = nullptr;
+    QCheckBox* m_autostartCheck = nullptr;
     QLineEdit* m_directoryEdit = nullptr;
     QPushButton* m_browseButton = nullptr;
 };

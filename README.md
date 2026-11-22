@@ -67,6 +67,7 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 - 截图后自动复制到剪贴板。
 - 截图后自动保存为 PNG。
 - 自动保存目录：默认 `~/Pictures/Screenshots`。
+- 开机自动启动：登录桌面时自动运行，自启文件写入 `~/.config/autostart/lumeshot.desktop`。
 
 自动复制和自动保存至少要开启一项。
 
@@ -136,7 +137,7 @@ src/
 ├── app/                    应用编排：托盘、热键、截图流程、保存与剪贴板
 ├── capture/                屏幕抓取与长截图拼接算法
 ├── config/                 配置读写（QSettings）
-├── platform/               X11 全局热键
+├── platform/               X11 全局热键、XDG 开机自启
 └── ui/                     框选遮罩、钉图窗口、长截图组件、设置对话框
 ```
 
