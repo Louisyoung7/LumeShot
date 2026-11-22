@@ -106,16 +106,51 @@ cmake --build build -j
 ## 打包 deb
 
 ```bash
-./packaging/build-deb.sh                  # 默认版本 0.1.0
-VERSION=0.2.0 ./packaging/build-deb.sh    # 指定版本
+./packaging/build-deb.sh
 ```
 
-产物：`build/deb-out/lumeshot_<版本>_amd64.deb`
+产物：`build/deb-out/lumeshot_<版本>_amd64.deb` 和同名 `.sha256`
 
+- 版本号从 `CMakeLists.txt` 的 `project(... VERSION x.y.z)` 读取，只需要改这一处。
 - 程序、Qt 运行库和 xcb 插件装到 `/opt/lumeshot`，包内自带，不依赖系统 Qt 版本。
 - `Depends` 由实际链接的库自动计算，已内置的 Qt / ICU 会被排除。
 - 安装：`sudo apt install ./build/deb-out/lumeshot_0.1.0_amd64.deb`
 - 卸载：`sudo apt remove lumeshot`
+- 查版本：`lumeshot --version` 或 `dpkg -s lumeshot | grep Version`
+
+## 版本号与发布
+
+版本号只有两个需要人工维护的地方，值必须一致：
+
+| 位置 | 形式 |
+| --- | --- |
+| `CMakeLists.txt` | `project(ScreenShot VERSION 0.1.0 ...)` |
+| git tag | `v0.1.0` |
+
+发布流程：
+
+```bash
+# 1. 改版本号并提交
+#    CMakeLists.txt: project(ScreenShot VERSION 0.2.0 LANGUAGES CXX)
+git commit -am "chore: 版本号 0.2.0"
+
+# 2. 打 tag 并推送，触发 CI
+git tag v0.2.0
+git push origin main
+git push origin v0.2.0
+
+# 3. CI 产出草稿 Release，本地补发布说明后发布
+gh release edit v0.2.0 --notes-file notes.md --draft=false
+```
+
+CI 行为（`.github/workflows/build.yml`）：
+
+- push 到 `main` 或提交 PR：构建并上传 deb 作为 artifact，不发布。
+- 推送 `v*` tag：先校验 tag 与 CMakeLists 版本一致，再构建；一致才创建草稿 Release 并附上 deb 和 sha256。
+- 发布说明由本地生成，CI 只提供 `generate_release_notes` 的初始内容，不带任何模型密钥。
+
+安装包兼容性：CI 在 Ubuntu 22.04 上构建，deb 依赖要求 glibc ≥ 2.34，可在 Ubuntu 22.04 / 24.04 安装。
+
 
 ## 键盘快捷键
 
