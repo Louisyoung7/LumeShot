@@ -23,7 +23,7 @@ jobs:
       - name: 安装系统依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev dpkg-dev
+          sudo apt-get install -y libx11-dev libxi-dev dpkg-dev
 
       - name: 安装 Qt 6
         uses: jurplel/install-qt-action@v4

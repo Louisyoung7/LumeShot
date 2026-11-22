@@ -85,19 +85,19 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 - CMake 3.16+
 - 支持 C++17 的编译器
 - Qt 6.5+（Widgets、Gui、Network；运行单元测试还需 Test）
-- X11 开发库
+- X11 与 XInput2 开发库
 
 安装示例：
 
 ```bash
 # Debian / Ubuntu
-sudo apt install build-essential cmake libx11-dev qt6-base-dev
+sudo apt install build-essential cmake libx11-dev libxi-dev qt6-base-dev
 
 # Fedora
-sudo dnf install gcc-c++ cmake libX11-devel qt6-qtbase-devel
+sudo dnf install gcc-c++ cmake libX11-devel libXi-devel qt6-qtbase-devel
 
 # Arch Linux
-sudo pacman -S base-devel cmake libx11 qt6-base
+sudo pacman -S base-devel cmake libx11 libxi qt6-base
 ```
 
 如果 Qt6 装在 `~/Qt/<version>/gcc_64`，CMake 会自动把最新的版本加入搜索路径。
