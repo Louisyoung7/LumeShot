@@ -1,4 +1,4 @@
-// 模块 app：下载 deb 更新包，并交给 pkexec 弹出授权窗口安装。
+// 模块 update：下载 deb 更新包，并交给 pkexec 弹出授权窗口安装。
 #pragma once
 
 #include <QObject>

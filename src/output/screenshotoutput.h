@@ -1,4 +1,4 @@
-// 模块 app：截图输出——按设置复制到剪贴板、保存为 PNG，并生成结果提示。
+// 模块 output：截图输出——按设置复制到剪贴板、保存为 PNG，并生成结果提示。
 #pragma once
 
 #include <QObject>

@@ -1,4 +1,4 @@
-#include "screencapture.h"
+#include "capture/screencapture.h"
 
 #include <QGuiApplication>
 #include <QPainter>

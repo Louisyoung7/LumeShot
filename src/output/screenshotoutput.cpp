@@ -1,4 +1,4 @@
-#include "app/screenshotoutput.h"
+#include "output/screenshotoutput.h"
 
 #include <QClipboard>
 #include <QDateTime>

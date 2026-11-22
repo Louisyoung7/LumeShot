@@ -1,4 +1,4 @@
-#include "app/updatechecker.h"
+#include "update/updatechecker.h"
 
 #include <QCoreApplication>
 #include <QJsonArray>

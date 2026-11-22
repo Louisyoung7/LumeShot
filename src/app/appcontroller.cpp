@@ -1,16 +1,16 @@
 #include "app/appcontroller.h"
 
 #include "app/longcapturesession.h"
-#include "app/screenshotoutput.h"
-#include "app/traycontroller.h"
-#include "app/updatechecker.h"
-#include "app/updateinstaller.h"
 #include "capture/screencapture.h"
+#include "output/screenshotoutput.h"
 #include "platform/autostart.h"
 #include "platform/globalhotkey.h"
 #include "ui/pin/pinwindow.h"
 #include "ui/selection/selectionoverlay.h"
 #include "ui/settings/settingsdialog.h"
+#include "ui/tray/traycontroller.h"
+#include "update/updatechecker.h"
+#include "update/updateinstaller.h"
 
 #include <QDebug>
 #include <QDesktopServices>

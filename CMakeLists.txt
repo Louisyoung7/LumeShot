@@ -28,17 +28,44 @@ endif()
 find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Gui Network)
 find_package(X11 REQUIRED)
 
-add_executable(lumeshot
-    src/main.cpp
+# 源文件按模块分组，目录即模块边界：
+#   app      应用编排：主控制器、长截图会话
+#   capture  抓屏与长截图拼接
+#   config   配置读写
+#   output   截图输出：剪贴板与 PNG 保存
+#   platform 平台适配：X11 全局热键、XDG 开机自启
+#   update   检查更新、下载与安装
+#   ui       界面层：托盘、框选、长截图、钉图、设置
+set(LUMESHOT_APP_SOURCES
     src/app/appcontroller.cpp
     src/app/longcapturesession.cpp
-    src/app/screenshotoutput.cpp
-    src/app/traycontroller.cpp
-    src/app/updatechecker.cpp
-    src/app/updateinstaller.cpp
+)
+
+set(LUMESHOT_CAPTURE_SOURCES
     src/capture/screencapture.cpp
     src/capture/scrollcapture.cpp
+)
+
+set(LUMESHOT_CONFIG_SOURCES
     src/config/appsettings.cpp
+)
+
+set(LUMESHOT_OUTPUT_SOURCES
+    src/output/screenshotoutput.cpp
+)
+
+set(LUMESHOT_PLATFORM_SOURCES
+    src/platform/autostart.cpp
+    src/platform/globalhotkey.cpp
+)
+
+set(LUMESHOT_UPDATE_SOURCES
+    src/update/updatechecker.cpp
+    src/update/updateinstaller.cpp
+)
+
+set(LUMESHOT_UI_SOURCES
+    src/ui/tray/traycontroller.cpp
     src/ui/selection/selectionoverlay.cpp
     src/ui/pin/pinwindow.cpp
     src/ui/longcapture/longcaptureframe.cpp
@@ -46,11 +73,20 @@ add_executable(lumeshot
     src/ui/longcapture/longcapturesidebar.cpp
     src/ui/settings/hotkeyedit.cpp
     src/ui/settings/settingsdialog.cpp
-    src/platform/globalhotkey.cpp
-    src/platform/autostart.cpp
 )
 
-# src 作为头文件根，源文件里用 "app/xxx.h"、"capture/xxx.h" 标明所属模块
+add_executable(lumeshot
+    src/main.cpp
+    ${LUMESHOT_APP_SOURCES}
+    ${LUMESHOT_CAPTURE_SOURCES}
+    ${LUMESHOT_CONFIG_SOURCES}
+    ${LUMESHOT_OUTPUT_SOURCES}
+    ${LUMESHOT_PLATFORM_SOURCES}
+    ${LUMESHOT_UPDATE_SOURCES}
+    ${LUMESHOT_UI_SOURCES}
+)
+
+# src 作为头文件根，源文件里用 "app/xxx.h"、"ui/tray/xxx.h" 标明所属模块
 target_include_directories(lumeshot PRIVATE src)
 
 target_compile_definitions(lumeshot PRIVATE APP_VERSION="${PROJECT_VERSION}")

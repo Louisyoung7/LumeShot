@@ -1,4 +1,4 @@
-#include "globalhotkey.h"
+#include "platform/globalhotkey.h"
 
 #include <QDateTime>
 #include <QKeyCombination>

@@ -176,19 +176,22 @@ CI 行为（`.github/workflows/build.yml`）：
 ```text
 src/
 ├── main.cpp                    程序入口，检查平台并启动控制器
-├── app/                        应用编排：托盘、热键、截图流程、输出与长截图会话
+├── app/                        应用编排：主控制器、长截图会话
 ├── capture/                    屏幕抓取与长截图拼接算法
 ├── config/                     配置读写（QSettings）
+├── output/                     截图输出：剪贴板与 PNG 保存
 ├── platform/                   X11 全局热键、XDG 开机自启
+├── update/                     检查更新、下载与安装
 └── ui/                         界面层，按功能拆分
     ├── common/                 绘制工具：选区边框、工具栏图标
+    ├── tray/                   系统托盘与无托盘回退窗口
     ├── selection/              全屏框选遮罩与选区工具栏
     ├── longcapture/            长截图边框、实时侧边栏、结果预览
     ├── pin/                    贴图钉图窗口
     └── settings/               设置对话框与快捷键录制控件
 ```
 
-模块依赖单向：`ui` / `app` 依赖 `capture`、`config`、`platform`，反向不引用。
+模块依赖单向：`app` 负责编排并依赖其余模块；`ui` 只依赖 `capture`、`config` 等底层能力，底层模块不反向引用界面层。
 
 头文件统一使用从 `src` 出发的模块前缀路径，如 `app/xxx.h`、`ui/longcapture/xxx.h`。
 

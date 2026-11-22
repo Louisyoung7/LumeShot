@@ -1,4 +1,4 @@
-#include "app/updateinstaller.h"
+#include "update/updateinstaller.h"
 
 #include <QCoreApplication>
 #include <QDir>

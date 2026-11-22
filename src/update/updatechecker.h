@@ -1,4 +1,4 @@
-// 模块 app：检查 GitHub Release 是否有新版本，只负责网络请求与版本比对。
+// 模块 update：检查 GitHub Release 是否有新版本，只负责网络请求与版本比对。
 #pragma once
 
 #include <QObject>
