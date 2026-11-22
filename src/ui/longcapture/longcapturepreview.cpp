@@ -1,6 +1,6 @@
-#include "ui/longcapturepreview.h"
+#include "ui/longcapture/longcapturepreview.h"
 
-#include "ui/toolbaricons.h"
+#include "ui/common/toolbaricons.h"
 
 #include <QKeyEvent>
 #include <QMouseEvent>

@@ -1,8 +1,8 @@
-#include "ui/selectionoverlay.h"
+#include "ui/selection/selectionoverlay.h"
 
 #include "capture/screencapture.h"
-#include "ui/selectionframe.h"
-#include "ui/toolbaricons.h"
+#include "ui/common/selectionframe.h"
+#include "ui/common/toolbaricons.h"
 
 #include <QFontMetrics>
 #include <QGuiApplication>

@@ -1,4 +1,4 @@
-#include "ui/hotkeyedit.h"
+#include "ui/settings/hotkeyedit.h"
 
 #include <QFocusEvent>
 #include <QKeyEvent>

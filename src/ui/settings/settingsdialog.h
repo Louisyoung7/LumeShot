@@ -4,7 +4,7 @@
 #include <QDialog>
 
 #include "config/appsettings.h"
-#include "ui/hotkeyedit.h"
+#include "ui/settings/hotkeyedit.h"
 
 class QCheckBox;
 class QLineEdit;

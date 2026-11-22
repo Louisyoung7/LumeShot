@@ -1,4 +1,4 @@
-#include "ui/pinwindow.h"
+#include "ui/pin/pinwindow.h"
 
 #include <QContextMenuEvent>
 #include <QCursor>

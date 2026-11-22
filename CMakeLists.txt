@@ -31,16 +31,19 @@ find_package(X11 REQUIRED)
 add_executable(screenshot
     src/main.cpp
     src/app/appcontroller.cpp
+    src/app/longcapturesession.cpp
+    src/app/screenshotoutput.cpp
+    src/app/traycontroller.cpp
     src/capture/screencapture.cpp
     src/capture/scrollcapture.cpp
     src/config/appsettings.cpp
-    src/ui/selectionoverlay.cpp
-    src/ui/pinwindow.cpp
-    src/ui/longcaptureframe.cpp
-    src/ui/longcapturepreview.cpp
-    src/ui/longcapturesidebar.cpp
-    src/ui/hotkeyedit.cpp
-    src/ui/settingsdialog.cpp
+    src/ui/selection/selectionoverlay.cpp
+    src/ui/pin/pinwindow.cpp
+    src/ui/longcapture/longcaptureframe.cpp
+    src/ui/longcapture/longcapturepreview.cpp
+    src/ui/longcapture/longcapturesidebar.cpp
+    src/ui/settings/hotkeyedit.cpp
+    src/ui/settings/settingsdialog.cpp
     src/platform/globalhotkey.cpp
     src/platform/autostart.cpp
 )

@@ -1,4 +1,4 @@
-#include "ui/longcapturesidebar.h"
+#include "ui/longcapture/longcapturesidebar.h"
 
 #include <QHBoxLayout>
 #include <QKeyEvent>

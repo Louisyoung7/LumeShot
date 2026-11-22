@@ -1,6 +1,6 @@
-#include "ui/longcaptureframe.h"
+#include "ui/longcapture/longcaptureframe.h"
 
-#include "ui/selectionframe.h"
+#include "ui/common/selectionframe.h"
 
 #include <QPainter>
 #include <QRegion>
