@@ -3,12 +3,24 @@
 #include <QApplication>
 #include <QMessageBox>
 
+#include <cstdio>
+#include <cstring>
+
 int main(int argc, char* argv[])
 {
+    // 在创建 QApplication 之前处理，保证无显示环境下也能打印版本
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--version") == 0) {
+            std::printf("LumeShot %s\n", APP_VERSION);
+            return 0;
+        }
+    }
+
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("ScreenShot"));
     QApplication::setOrganizationName(QStringLiteral("ScreenShot"));
     QApplication::setApplicationDisplayName(QStringLiteral("ScreenShot"));
+    QApplication::setApplicationVersion(QStringLiteral(APP_VERSION));
     QApplication::setQuitOnLastWindowClosed(false);
 
     if (QGuiApplication::platformName().startsWith(QLatin1String("wayland"))) {

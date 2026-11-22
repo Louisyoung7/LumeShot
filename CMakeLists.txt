@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(ScreenShot LANGUAGES CXX)
+# 版本号唯一来源：改这里即可，打包脚本和 CI 都读这个值
+project(ScreenShot VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -46,6 +47,8 @@ add_executable(screenshot
 
 # src 作为头文件根，源文件里用 "app/xxx.h"、"capture/xxx.h" 标明所属模块
 target_include_directories(screenshot PRIVATE src)
+
+target_compile_definitions(screenshot PRIVATE APP_VERSION="${PROJECT_VERSION}")
 
 target_link_libraries(screenshot PRIVATE
     Qt6::Widgets

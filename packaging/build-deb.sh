@@ -3,11 +3,14 @@
 set -euo pipefail
 
 PKG=lumeshot
-VERSION=${VERSION:-0.1.0}
 ARCH=amd64
 TITLE="LumeShot"
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+# 版本号只从 CMakeLists 的 project(... VERSION x.y.z) 读取，避免多处维护
+VERSION=$(sed -n 's/^project(ScreenShot VERSION \([0-9][0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -1)
+[[ -n "$VERSION" ]] || { echo "无法从 CMakeLists.txt 读取版本号" >&2; exit 1; }
 BUILD_ROOT="$ROOT_DIR/build"
 BUILD_DIR="$BUILD_ROOT/deb-build"
 STAGE_DIR="$BUILD_ROOT/deb-stage"
@@ -161,6 +164,7 @@ EOF
 log "打包"
 DEB_FILE="$OUT_DIR/${PKG}_${VERSION}_${ARCH}.deb"
 dpkg-deb --root-owner-group -Zxz --build "$STAGE_DIR" "$DEB_FILE" >/dev/null
+(cd "$OUT_DIR" && sha256sum "$(basename "$DEB_FILE")" > "$(basename "$DEB_FILE").sha256")
 
 log "完成: $DEB_FILE ($(du -h "$DEB_FILE" | cut -f1))"
 dpkg-deb -I "$DEB_FILE" | sed -n '/Package:/,$p' | head -20
