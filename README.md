@@ -13,7 +13,8 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 - 当前窗口截图：抓取活动窗口所在区域。
 - 滚动长截图：框选区域后手动滚动页面，逐帧拼接成长图。
 - 贴图钉图：把截图固定在桌面最顶层，随用随看。
-- 全局热键：默认 `Ctrl+Alt+A`，可在设置中修改。
+- 全局热键：默认 `Ctrl+Alt+A`，在设置里点击按钮录制，录制时立即检测是否被占用。
+- 开机自启：可写入 XDG autostart，登录桌面时自动运行。
 - 系统托盘：托盘菜单提供全部入口；没有托盘时自动退回独立小窗口。
 - 自动处理：截图后自动复制到剪贴板、自动保存为 PNG。
 - 配置持久化：通过 QSettings 保存，重启后保留。
@@ -63,7 +64,11 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 
 托盘菜单 → “设置…”，可修改：
 
-- 全局快捷键：必须包含 Ctrl、Alt 或 Super。
+- 全局快捷键：点击按钮后按下新的组合键。
+  - 必须包含 Ctrl、Alt 或 Super。
+  - 支持字母、数字、F1-F24、方向键、编辑键和常用标点。
+  - `Esc` 取消录制，`Backspace` 或 `Delete` 清除当前快捷键。
+  - 录制时立即试注册，被系统或其他程序占用会就地弹窗提示。
 - 截图后自动复制到剪贴板。
 - 截图后自动保存为 PNG。
 - 自动保存目录：默认 `~/Pictures/Screenshots`。
@@ -101,6 +106,7 @@ sudo pacman -S base-devel cmake libx11 qt6-base
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ./build/screenshot
+./build/screenshot --version    # 打印当前版本
 ```
 
 ## 打包 deb
@@ -151,7 +157,6 @@ CI 行为（`.github/workflows/build.yml`）：
 
 安装包兼容性：CI 在 Ubuntu 22.04 上构建，deb 依赖要求 glibc ≥ 2.34，可在 Ubuntu 22.04 / 24.04 安装。
 
-
 ## 键盘快捷键
 
 | 场景 | 按键 | 作用 |
@@ -173,7 +178,7 @@ src/
 ├── capture/                屏幕抓取与长截图拼接算法
 ├── config/                 配置读写（QSettings）
 ├── platform/               X11 全局热键、XDG 开机自启
-└── ui/                     框选遮罩、钉图窗口、长截图组件、设置对话框
+└── ui/                     框选遮罩、钉图窗口、长截图组件、设置对话框、快捷键录制控件
 ```
 
 模块依赖单向：`ui` / `app` 依赖 `capture`、`config`、`platform`，反向不引用。
