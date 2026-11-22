@@ -84,7 +84,7 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 
 - CMake 3.16+
 - 支持 C++17 的编译器
-- Qt 6.5+（Widgets、Gui）
+- Qt 6.5+（Widgets、Gui、Network；运行单元测试还需 Test）
 - X11 开发库
 
 安装示例：
@@ -199,6 +199,11 @@ src/
     ├── longcapture/            长截图边框、实时侧边栏、结果预览
     ├── pin/                    贴图钉图窗口
     └── settings/               设置对话框与快捷键录制控件
+
+tests/                          单元测试，不依赖图形环境
+├── tst_stitch.cpp              长截图重叠检测
+├── tst_version.cpp             版本号比较
+└── tst_appsettings.cpp         配置读写与默认值
 ```
 
 模块依赖单向：`app` 负责编排并依赖其余模块；`ui` 只依赖 `capture`、`config` 等底层能力，底层模块不反向引用界面层。
