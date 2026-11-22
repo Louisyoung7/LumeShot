@@ -3,6 +3,7 @@
 #include "app/longcapturesession.h"
 #include "app/screenshotoutput.h"
 #include "app/traycontroller.h"
+#include "app/updatechecker.h"
 #include "capture/screencapture.h"
 #include "platform/autostart.h"
 #include "platform/globalhotkey.h"
@@ -157,6 +158,18 @@ void AppController::openSettings()
     m_settings.autostart = Autostart::isEnabled();
 
     SettingsDialog dialog(m_settings, m_tray->dialogParent());
+
+    // 检查更新的网络请求归 app 层，界面只负责触发和展示结果
+    auto* updateChecker = new UpdateChecker(&dialog);
+    connect(&dialog, &SettingsDialog::checkUpdateRequested, updateChecker,
+            &UpdateChecker::check);
+    connect(updateChecker, &UpdateChecker::updateAvailable, &dialog,
+            &SettingsDialog::showUpdateAvailable);
+    connect(updateChecker, &UpdateChecker::upToDate, &dialog,
+            &SettingsDialog::showUpToDate);
+    connect(updateChecker, &UpdateChecker::failed, &dialog,
+            &SettingsDialog::showUpdateFailed);
+
     // 录制时立即试注册，冲突就地提示，不必等到关闭对话框
     dialog.setHotkeyValidator([this](const QKeySequence& sequence) -> QString {
         if (!GlobalHotKey::isSupported(sequence))

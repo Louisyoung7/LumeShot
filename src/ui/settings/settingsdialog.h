@@ -7,6 +7,7 @@
 #include "ui/settings/hotkeyedit.h"
 
 class QCheckBox;
+class QLabel;
 class QLineEdit;
 class QPushButton;
 
@@ -22,12 +23,23 @@ public:
     // 对话框确认后的配置（取消时无意义）
     AppSettings settings() const;
 
+signals:
+    // 由 app 层执行实际检查，界面只负责展示结果
+    void checkUpdateRequested();
+
+public slots:
+    void showUpdateAvailable(const QString& version, const QString& notes,
+                             const QString& releaseUrl);
+    void showUpToDate(const QString& version);
+    void showUpdateFailed(const QString& message);
+
 protected:
     void accept() override;
 
 private:
     void browseDirectory();
     void updateDirectoryEnabled();
+    void setUpdateChecking(bool checking);
 
     HotkeyEdit* m_hotkeyEdit = nullptr;
     QCheckBox* m_autoCopyCheck = nullptr;
@@ -35,4 +47,6 @@ private:
     QCheckBox* m_autostartCheck = nullptr;
     QLineEdit* m_directoryEdit = nullptr;
     QPushButton* m_browseButton = nullptr;
+    QLabel* m_versionLabel = nullptr;
+    QPushButton* m_checkUpdateButton = nullptr;
 };

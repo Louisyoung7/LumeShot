@@ -51,8 +51,8 @@ install -m 0755 "$BINARY" "$APP_DIR/bin/screenshot"
 install -m 0644 "$ROOT_DIR/packaging/lumeshot.desktop" "$STAGE_DIR/usr/share/applications/$PKG.desktop"
 install -m 0644 "$ROOT_DIR/packaging/lumeshot.svg" "$STAGE_DIR/usr/share/icons/hicolor/scalable/apps/$PKG.svg"
 
-# 只保留 X11 需要的最小插件集
-for sub in platforms xcbglintegrations platforminputcontexts; do
+# 只保留 X11 需要的最小插件集；tls 用于检查更新的 HTTPS 请求
+for sub in platforms xcbglintegrations platforminputcontexts tls; do
     [[ -d "$QT_PLUGINS/$sub" ]] || continue
     mkdir -p "$APP_DIR/plugins/$sub"
     if [[ "$sub" == "platforms" ]]; then

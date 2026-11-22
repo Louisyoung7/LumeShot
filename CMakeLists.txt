@@ -25,7 +25,7 @@ if(NOT Qt6_FOUND AND EXISTS "$ENV{HOME}/Qt")
     endif()
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Gui)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Gui Network)
 find_package(X11 REQUIRED)
 
 add_executable(screenshot
@@ -34,6 +34,7 @@ add_executable(screenshot
     src/app/longcapturesession.cpp
     src/app/screenshotoutput.cpp
     src/app/traycontroller.cpp
+    src/app/updatechecker.cpp
     src/capture/screencapture.cpp
     src/capture/scrollcapture.cpp
     src/config/appsettings.cpp
@@ -56,5 +57,6 @@ target_compile_definitions(screenshot PRIVATE APP_VERSION="${PROJECT_VERSION}")
 target_link_libraries(screenshot PRIVATE
     Qt6::Widgets
     Qt6::Gui
+    Qt6::Network
     X11::X11
 )

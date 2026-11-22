@@ -1,13 +1,17 @@
 #include "ui/settings/settingsdialog.h"
 
 #include <QCheckBox>
+#include <QCoreApplication>
+#include <QDesktopServices>
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QUrl>
 
 #include <utility>
 
@@ -38,12 +42,21 @@ SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     directoryRow->addWidget(m_directoryEdit);
     directoryRow->addWidget(m_browseButton);
 
+    m_versionLabel = new QLabel(
+        QStringLiteral("当前版本 %1").arg(QCoreApplication::applicationVersion()), this);
+    m_checkUpdateButton = new QPushButton(QStringLiteral("检查更新"), this);
+
+    auto* updateRow = new QHBoxLayout;
+    updateRow->addWidget(m_versionLabel, 1);
+    updateRow->addWidget(m_checkUpdateButton);
+
     auto* form = new QFormLayout(this);
     form->addRow(QStringLiteral("全局快捷键"), m_hotkeyEdit);
     form->addRow(m_autoCopyCheck);
     form->addRow(m_autoSaveCheck);
     form->addRow(QStringLiteral("保存目录"), directoryRow);
     form->addRow(m_autostartCheck);
+    form->addRow(QStringLiteral("版本"), updateRow);
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     buttons->button(QDialogButtonBox::Ok)->setText(QStringLiteral("保存"));
@@ -54,6 +67,10 @@ SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     connect(buttons, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
     connect(m_browseButton, &QPushButton::clicked, this, &SettingsDialog::browseDirectory);
     connect(m_autoSaveCheck, &QCheckBox::toggled, this, &SettingsDialog::updateDirectoryEnabled);
+    connect(m_checkUpdateButton, &QPushButton::clicked, this, [this] {
+        setUpdateChecking(true);
+        emit checkUpdateRequested();
+    });
 
     updateDirectoryEnabled();
     adjustSize();
@@ -114,4 +131,50 @@ void SettingsDialog::updateDirectoryEnabled()
     const bool enabled = m_autoSaveCheck->isChecked();
     m_directoryEdit->setEnabled(enabled);
     m_browseButton->setEnabled(enabled);
+}
+
+void SettingsDialog::showUpdateAvailable(const QString& version, const QString& notes,
+                                         const QString& releaseUrl)
+{
+    setUpdateChecking(false);
+
+    QMessageBox box(this);
+    box.setIcon(QMessageBox::Information);
+    box.setWindowTitle(QStringLiteral("发现新版本"));
+    box.setText(QStringLiteral("发现新版本 v%1，当前版本 v%2。")
+                    .arg(version, QCoreApplication::applicationVersion()));
+
+    const QString description = notes.trimmed();
+    box.setInformativeText(description.isEmpty() ? QStringLiteral("该版本没有填写更新说明。")
+                                                 : description);
+
+    QPushButton* openButton = nullptr;
+    if (!releaseUrl.isEmpty())
+        openButton = box.addButton(QStringLiteral("打开发布页"), QMessageBox::AcceptRole);
+    box.addButton(QStringLiteral("知道了"), QMessageBox::RejectRole);
+    box.exec();
+
+    if (openButton && box.clickedButton() == openButton)
+        QDesktopServices::openUrl(QUrl(releaseUrl));
+}
+
+void SettingsDialog::showUpToDate(const QString& version)
+{
+    setUpdateChecking(false);
+    QMessageBox::information(this, QStringLiteral("检查更新"),
+                             QStringLiteral("当前已是最新版本 v%1。").arg(version));
+}
+
+void SettingsDialog::showUpdateFailed(const QString& message)
+{
+    setUpdateChecking(false);
+    QMessageBox::warning(this, QStringLiteral("检查更新失败"),
+                         QStringLiteral("无法获取更新信息：\n%1").arg(message));
+}
+
+void SettingsDialog::setUpdateChecking(bool checking)
+{
+    m_checkUpdateButton->setEnabled(!checking);
+    m_checkUpdateButton->setText(checking ? QStringLiteral("检查中…")
+                                          : QStringLiteral("检查更新"));
 }
