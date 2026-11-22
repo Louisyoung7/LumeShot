@@ -372,6 +372,21 @@ void AppController::openSettings()
     m_settings.autostart = Autostart::isEnabled();
 
     SettingsDialog dialog(m_settings, m_fallbackWindow);
+    // 录制时立即试注册，冲突就地提示，不必等到关闭对话框
+    dialog.setHotkeyValidator([this](const QKeySequence& sequence) -> QString {
+        if (!GlobalHotKey::isSupported(sequence))
+            return QStringLiteral("该按键组合暂不支持。\n"
+                                  "请使用字母、数字、F1-F24、方向键、编辑键或常用标点，"
+                                  "并包含 Ctrl、Alt 或 Super。");
+        if (sequence == m_settings.hotkey)
+            return QString();
+        if (!m_hotkey->probe(sequence)) {
+            return QStringLiteral("%1 已被其他程序或系统占用，请换一个组合。")
+                .arg(sequence.toString(QKeySequence::NativeText));
+        }
+        return QString();
+    });
+
     if (dialog.exec() != QDialog::Accepted) {
         m_hotkey->resume();
         return;

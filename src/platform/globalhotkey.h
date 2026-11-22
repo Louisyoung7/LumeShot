@@ -15,8 +15,14 @@ public:
     explicit GlobalHotKey(QObject* parent = nullptr);
     ~GlobalHotKey() override;
 
-    // 注册组合键（仅支持字母、数字、F1-F12、Print、空格），失败返回 false
+    // 注册组合键（支持字母、数字、F1-F24、空格、方向键、编辑键与常用标点），失败返回 false
     bool grab(const QKeySequence& sequence);
+
+    // 组合键是否在可注册范围内（不访问 X11，可在界面层直接调用）
+    static bool isSupported(const QKeySequence& sequence);
+
+    // 试注册检测是否被占用，成功后立即释放，不改变当前已注册的快捷键
+    bool probe(const QKeySequence& sequence);
 
     // 临时释放快捷键（打开设置界面时避免自己的热键抢走按键）
     void suspend();

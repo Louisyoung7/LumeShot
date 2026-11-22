@@ -4,9 +4,9 @@
 #include <QDialog>
 
 #include "config/appsettings.h"
+#include "ui/hotkeyedit.h"
 
 class QCheckBox;
-class QKeySequenceEdit;
 class QLineEdit;
 class QPushButton;
 
@@ -15,6 +15,9 @@ class SettingsDialog : public QDialog {
 
 public:
     explicit SettingsDialog(const AppSettings& settings, QWidget* parent = nullptr);
+
+    // 注入快捷键可用性校验（由 app 层提供，ui 层不直接注册热键）
+    void setHotkeyValidator(HotkeyValidator validator);
 
     // 对话框确认后的配置（取消时无意义）
     AppSettings settings() const;
@@ -26,7 +29,7 @@ private:
     void browseDirectory();
     void updateDirectoryEnabled();
 
-    QKeySequenceEdit* m_hotkeyEdit = nullptr;
+    HotkeyEdit* m_hotkeyEdit = nullptr;
     QCheckBox* m_autoCopyCheck = nullptr;
     QCheckBox* m_autoSaveCheck = nullptr;
     QCheckBox* m_autostartCheck = nullptr;

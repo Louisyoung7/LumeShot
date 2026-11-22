@@ -38,6 +38,7 @@ add_executable(screenshot
     src/ui/longcaptureframe.cpp
     src/ui/longcapturepreview.cpp
     src/ui/longcapturesidebar.cpp
+    src/ui/hotkeyedit.cpp
     src/ui/settingsdialog.cpp
     src/platform/globalhotkey.cpp
     src/platform/autostart.cpp

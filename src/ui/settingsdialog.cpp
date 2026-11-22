@@ -5,10 +5,11 @@
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
-#include <QKeySequenceEdit>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+
+#include <utility>
 
 SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     : QDialog(parent)
@@ -17,8 +18,9 @@ SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     setModal(true);
     setMinimumWidth(480);
 
-    m_hotkeyEdit = new QKeySequenceEdit(settings.hotkey, this);
-    m_hotkeyEdit->setMaximumSequenceLength(1);
+    m_hotkeyEdit = new HotkeyEdit(this);
+    m_hotkeyEdit->setKeySequence(settings.hotkey);
+    m_hotkeyEdit->setMinimumWidth(220);
 
     m_autoCopyCheck = new QCheckBox(QStringLiteral("截图后自动复制到剪贴板"), this);
     m_autoCopyCheck->setChecked(settings.autoCopy);
@@ -55,6 +57,11 @@ SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
 
     updateDirectoryEnabled();
     adjustSize();
+}
+
+void SettingsDialog::setHotkeyValidator(HotkeyValidator validator)
+{
+    m_hotkeyEdit->setValidator(std::move(validator));
 }
 
 AppSettings SettingsDialog::settings() const
