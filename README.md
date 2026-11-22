@@ -111,6 +111,16 @@ cmake --build build -j
 ./build/lumeshot --version    # 打印当前版本
 ```
 
+## 单元测试
+
+测试只覆盖与界面无关的纯逻辑（拼接重叠检测、版本比较、配置读写），无需图形环境：
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+默认随 `BUILD_TESTING` 开启；只需构建主程序时可加 `-DBUILD_TESTING=OFF`。
+
 ## 打包 deb
 
 ```bash

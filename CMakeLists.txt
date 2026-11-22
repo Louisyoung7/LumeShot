@@ -44,6 +44,7 @@ set(LUMESHOT_APP_SOURCES
 set(LUMESHOT_CAPTURE_SOURCES
     src/capture/screencapture.cpp
     src/capture/scrollcapture.cpp
+    src/capture/stitch.cpp
 )
 
 set(LUMESHOT_CONFIG_SOURCES
@@ -62,6 +63,7 @@ set(LUMESHOT_PLATFORM_SOURCES
 set(LUMESHOT_UPDATE_SOURCES
     src/update/updatechecker.cpp
     src/update/updateinstaller.cpp
+    src/update/version.cpp
 )
 
 set(LUMESHOT_UI_SOURCES
@@ -98,3 +100,10 @@ target_link_libraries(lumeshot PRIVATE
     X11::X11
     ${X11_Xi_LIB}
 )
+
+# 单元测试：ctest --test-dir build --output-on-failure
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
+    add_subdirectory(tests)
+endif()

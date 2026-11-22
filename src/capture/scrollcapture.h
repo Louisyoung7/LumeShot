@@ -29,8 +29,6 @@ signals:
 private:
     void scheduleNext();
     void captureFrame();
-    // 返回与帧高度的重叠行数；-1 表示没滚动，0 表示没有可靠匹配
-    int detectOverlap(const QImage& tail, const QImage& frame) const;
     void updateTail(const QImage& frame, int overlap);
     void appendThumbnail(const QImage& piece);
     QImage compose() const;

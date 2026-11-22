@@ -1,5 +1,7 @@
 #include "update/updatechecker.h"
 
+#include "update/version.h"
+
 #include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -80,7 +82,7 @@ void UpdateChecker::handleReply(QNetworkReply* reply)
     if (version.startsWith(QLatin1Char('v')))
         version.remove(0, 1);
 
-    if (isNewerVersion(version, QCoreApplication::applicationVersion())) {
+    if (update::isNewerVersion(version, QCoreApplication::applicationVersion())) {
         QString downloadUrl;
         const QJsonArray assets = release.value(QStringLiteral("assets")).toArray();
         for (const QJsonValue& value : assets) {
@@ -98,18 +100,4 @@ void UpdateChecker::handleReply(QNetworkReply* reply)
     } else {
         emit upToDate(version);
     }
-}
-
-bool UpdateChecker::isNewerVersion(const QString& remote, const QString& current)
-{
-    const QStringList remoteParts = remote.split(QLatin1Char('.'));
-    const QStringList currentParts = current.split(QLatin1Char('.'));
-    const int count = qMax(remoteParts.size(), currentParts.size());
-    for (int i = 0; i < count; ++i) {
-        const int remotePart = i < remoteParts.size() ? remoteParts.at(i).toInt() : 0;
-        const int currentPart = i < currentParts.size() ? currentParts.at(i).toInt() : 0;
-        if (remotePart != currentPart)
-            return remotePart > currentPart;
-    }
-    return false;
 }

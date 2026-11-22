@@ -25,7 +25,6 @@ signals:
 
 private:
     void handleReply(QNetworkReply* reply);
-    static bool isNewerVersion(const QString& remote, const QString& current);
 
     QNetworkAccessManager* m_network = nullptr;
     QNetworkReply* m_reply = nullptr;
