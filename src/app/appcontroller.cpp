@@ -202,7 +202,13 @@ void AppController::openSettings()
     });
 
     if (dialog.exec() != QDialog::Accepted) {
-        m_hotkey->resume();
+        // 对话框打开期间组合键可能被其他程序抢占，失败要明确告知，避免静默失去全局热键
+        if (!m_hotkey->resume()) {
+            notify(QStringLiteral("全局快捷键失效"),
+                   QStringLiteral("%1 无法重新注册，可能已被其他程序占用。\n"
+                                  "请从托盘打开设置更换快捷键。")
+                       .arg(m_settings.hotkey.toString(QKeySequence::NativeText)));
+        }
         return;
     }
 

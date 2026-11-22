@@ -34,6 +34,10 @@ signals:
 
 private:
     void ungrab();
+    // 发起 XGrabKey 请求，失败时回滚并返回 false（不修改 m_keycode/m_modifiers）
+    bool installGrab(unsigned int keycode, unsigned int modifiers);
+    // 键盘映射变化后按当前布局重新解析 keycode 并重新注册
+    void reapplyGrab();
 
     _XDisplay* m_display = nullptr;
     QSocketNotifier* m_notifier = nullptr;

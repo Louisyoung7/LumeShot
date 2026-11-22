@@ -148,6 +148,42 @@ bool GlobalHotKey::grab(const QKeySequence& sequence)
 
     ungrab();
 
+    if (!installGrab(keycode, modifiers))
+        return false;
+
+    m_keycode = keycode;
+    m_modifiers = modifiers;
+    m_sequence = sequence;
+
+    if (!m_notifier) {
+        m_notifier = new QSocketNotifier(ConnectionNumber(m_display), QSocketNotifier::Read, this);
+        connect(m_notifier, &QSocketNotifier::activated, this, [this] {
+            bool mappingChanged = false;
+            while (XPending(m_display) > 0) {
+                XEvent event;
+                XNextEvent(m_display, &event);
+                if (event.type == KeyPress) {
+                    emit activated();
+                } else if (event.type == MappingNotify) {
+                    // 键盘/修饰键映射变化时 X 服务器会释放被动 grab，必须刷新缓存后重新注册
+                    XRefreshKeyboardMapping(&event.xmapping);
+                    if (event.xmapping.request != MappingPointer)
+                        mappingChanged = true;
+                }
+            }
+            if (mappingChanged)
+                reapplyGrab();
+        });
+    } else {
+        m_notifier->setEnabled(true);
+    }
+
+    XFlush(m_display);
+    return true;
+}
+
+bool GlobalHotKey::installGrab(unsigned int keycode, unsigned int modifiers)
+{
     const Window root = DefaultRootWindow(m_display);
     g_grabDenied = false;
     XErrorHandler previousHandler = XSetErrorHandler(grabErrorHandler);
@@ -163,27 +199,23 @@ bool GlobalHotKey::grab(const QKeySequence& sequence)
         XFlush(m_display);
         return false;
     }
-
-    m_keycode = keycode;
-    m_modifiers = modifiers;
-    m_sequence = sequence;
-
-    if (!m_notifier) {
-        m_notifier = new QSocketNotifier(ConnectionNumber(m_display), QSocketNotifier::Read, this);
-        connect(m_notifier, &QSocketNotifier::activated, this, [this] {
-            while (XPending(m_display) > 0) {
-                XEvent event;
-                XNextEvent(m_display, &event);
-                if (event.type == KeyPress)
-                    emit activated();
-            }
-        });
-    } else {
-        m_notifier->setEnabled(true);
-    }
-
-    XFlush(m_display);
     return true;
+}
+
+void GlobalHotKey::reapplyGrab()
+{
+    // 设置界面挂起期间不抢按键，等 resume() 时再注册
+    if (!m_display || m_keycode == 0 || m_sequence.isEmpty())
+        return;
+
+    // 映射变化后旧 keycode 可能失效，按当前布局重新解析
+    const KeyCode keycode = XKeysymToKeycode(m_display, keySymForKey(m_sequence[0].key()));
+    if (keycode == 0)
+        return; // 当前布局里没有这个键，等下一次映射变化再重试
+
+    // 服务器在映射变化时已释放旧 grab，这里直接重新注册，失败则等下次重试
+    m_keycode = keycode;
+    installGrab(keycode, m_modifiers);
 }
 
 bool GlobalHotKey::isSupported(const QKeySequence& sequence)
