@@ -122,7 +122,7 @@ cmake --build build -j
 - 版本号从 `CMakeLists.txt` 的 `project(... VERSION x.y.z)` 读取，只需要改这一处。
 - 程序、Qt 运行库和 xcb 插件装到 `/opt/lumeshot`，包内自带，不依赖系统 Qt 版本。
 - `Depends` 由实际链接的库自动计算，已内置的 Qt / ICU 会被排除。
-- 安装：`sudo apt install ./build/deb-out/lumeshot_0.2.0_amd64.deb`
+- 安装：`sudo apt install ./build/deb-out/lumeshot_0.2.1_amd64.deb`
 - 卸载：`sudo apt remove lumeshot`
 - 查版本：`lumeshot --version` 或 `dpkg -s lumeshot | grep Version`
 
@@ -132,23 +132,23 @@ cmake --build build -j
 
 | 位置 | 形式 |
 | --- | --- |
-| `CMakeLists.txt` | `project(ScreenShot VERSION 0.2.0 ...)` |
-| git tag | `v0.2.0` |
+| `CMakeLists.txt` | `project(ScreenShot VERSION 0.2.1 ...)` |
+| git tag | `v0.2.1` |
 
 发布流程：
 
 ```bash
 # 1. 改版本号并提交
-#    CMakeLists.txt: project(ScreenShot VERSION 0.2.0 LANGUAGES CXX)
-git commit -am "chore: 版本号 0.2.0"
+#    CMakeLists.txt: project(ScreenShot VERSION 0.2.1 LANGUAGES CXX)
+git commit -am "chore: 版本号 0.2.1"
 
 # 2. 打 tag 并推送，触发 CI
-git tag v0.2.0
+git tag v0.2.1
 git push origin main
-git push origin v0.2.0
+git push origin v0.2.1
 
 # 3. CI 产出草稿 Release，本地补发布说明后发布
-gh release edit v0.2.0 --notes-file notes.md --draft=false
+gh release edit v0.2.1 --notes-file notes.md --draft=false
 ```
 
 CI 行为（`.github/workflows/build.yml`）：

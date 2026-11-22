@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # 版本号唯一来源：改这里即可，打包脚本和 CI 都读这个值
-project(ScreenShot VERSION 0.2.0 LANGUAGES CXX)
+project(ScreenShot VERSION 0.2.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
