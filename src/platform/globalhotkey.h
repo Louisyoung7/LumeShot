@@ -5,6 +5,7 @@
 #include <QObject>
 
 class QSocketNotifier;
+class QTimer;
 struct _XDisplay;
 
 // 基于 X11 XGrabKey 的全局热键。
@@ -36,12 +37,31 @@ private:
     void ungrab();
     // 发起 XGrabKey 请求，失败时回滚并返回 false（不修改 m_keycode/m_modifiers）
     bool installGrab(unsigned int keycode, unsigned int modifiers);
-    // 键盘映射变化后按当前布局重新解析 keycode 并重新注册
+    // 排空 X 事件队列：处理按键与映射变化，映射变化后按当前键位重新注册
+    void pumpEvents();
+    // 键盘/修饰键映射变化后按当前键位重新注册
     void reapplyGrab();
+    // 重新注册失败时稍后自动重试，避免热键一直失效到手动打开设置界面
+    void scheduleRetry();
+    // 选择 XI2 原始按键事件：不受抓取/焦点影响，被动 grab 收不到时也能兜底触发
+    bool setupRawEvents();
+    // 处理 XI2 原始按键：校验当前修饰位后触发
+    void handleRawKeyPress(int keycode);
+    // 同一次按压会被被动 grab 与原始事件各上报一次，这里做去重
+    bool claimActivation();
 
     _XDisplay* m_display = nullptr;
     QSocketNotifier* m_notifier = nullptr;
+    QTimer* m_retryTimer = nullptr;
+    int m_xiOpcode = -1;
+    qint64 m_lastActivationMs = 0;
     QKeySequence m_sequence;
     unsigned int m_keycode = 0;
     unsigned int m_modifiers = 0;
+    // 实际抓取的完整掩码（含 CapsLock/NumLock 位），释放时按原样松开
+    unsigned int m_activeMasks[4] = {0, 0, 0, 0};
+    int m_activeMaskCount = 0;
+    int m_retryCount = 0;
+    bool m_pumping = false;
+    bool m_suspended = false;
 };

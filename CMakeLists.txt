@@ -60,4 +60,5 @@ target_link_libraries(screenshot PRIVATE
     Qt6::Gui
     Qt6::Network
     X11::X11
+    ${X11_Xi_LIB}
 )
