@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QProgressDialog>
 #include <QPushButton>
 #include <QUrl>
 
@@ -134,7 +135,7 @@ void SettingsDialog::updateDirectoryEnabled()
 }
 
 void SettingsDialog::showUpdateAvailable(const QString& version, const QString& notes,
-                                         const QString& releaseUrl)
+                                         const QString& releaseUrl, const QString& downloadUrl)
 {
     setUpdateChecking(false);
 
@@ -145,17 +146,27 @@ void SettingsDialog::showUpdateAvailable(const QString& version, const QString& 
                     .arg(version, QCoreApplication::applicationVersion()));
 
     const QString description = notes.trimmed();
-    box.setInformativeText(description.isEmpty() ? QStringLiteral("该版本没有填写更新说明。")
-                                                 : description);
+    QString informative = description.isEmpty() ? QStringLiteral("该版本没有填写更新说明。")
+                                                : description;
+    if (downloadUrl.isEmpty())
+        informative += QStringLiteral("\n\n该版本没有提供 deb 安装包，请到发布页手动下载。");
+    box.setInformativeText(informative);
 
+    QPushButton* installButton = nullptr;
+    if (!downloadUrl.isEmpty())
+        installButton = box.addButton(QStringLiteral("下载并安装"), QMessageBox::AcceptRole);
     QPushButton* openButton = nullptr;
     if (!releaseUrl.isEmpty())
-        openButton = box.addButton(QStringLiteral("打开发布页"), QMessageBox::AcceptRole);
-    box.addButton(QStringLiteral("知道了"), QMessageBox::RejectRole);
+        openButton = box.addButton(QStringLiteral("打开发布页"), QMessageBox::ActionRole);
+    box.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);
     box.exec();
 
-    if (openButton && box.clickedButton() == openButton)
+    if (installButton && box.clickedButton() == installButton) {
+        showProgress();
+        emit installUpdateRequested(downloadUrl);
+    } else if (openButton && box.clickedButton() == openButton) {
         QDesktopServices::openUrl(QUrl(releaseUrl));
+    }
 }
 
 void SettingsDialog::showUpToDate(const QString& version)
@@ -170,6 +181,74 @@ void SettingsDialog::showUpdateFailed(const QString& message)
     setUpdateChecking(false);
     QMessageBox::warning(this, QStringLiteral("检查更新失败"),
                          QStringLiteral("无法获取更新信息：\n%1").arg(message));
+}
+
+void SettingsDialog::showDownloadProgress(qint64 received, qint64 total)
+{
+    if (!m_progress)
+        return;
+
+    if (total > 0) {
+        m_progress->setRange(0, 100);
+        m_progress->setValue(int(received * 100 / total));
+        m_progress->setLabelText(QStringLiteral("正在下载更新包… %1%")
+                                     .arg(received * 100 / total));
+    } else {
+        m_progress->setRange(0, 0);
+        m_progress->setLabelText(QStringLiteral("正在下载更新包…"));
+    }
+}
+
+void SettingsDialog::showInstalling()
+{
+    if (!m_progress)
+        return;
+    m_progress->setRange(0, 0);
+    m_progress->setLabelText(QStringLiteral("正在安装，请在授权窗口输入密码…"));
+    m_progress->setCancelButton(nullptr);
+}
+
+void SettingsDialog::showInstallResult(bool success, const QString& message)
+{
+    closeProgress();
+    if (success)
+        QMessageBox::information(this, QStringLiteral("更新完成"), message);
+    else
+        QMessageBox::warning(this, QStringLiteral("安装失败"), message);
+}
+
+void SettingsDialog::showInstallFailed(const QString& message)
+{
+    closeProgress();
+    QMessageBox::warning(this, QStringLiteral("更新失败"), message);
+}
+
+void SettingsDialog::showProgress()
+{
+    if (!m_progress) {
+        m_progress = new QProgressDialog(this);
+        m_progress->setWindowTitle(QStringLiteral("正在更新 LumeShot"));
+        m_progress->setWindowModality(Qt::WindowModal);
+        m_progress->setAutoClose(false);
+        m_progress->setAutoReset(false);
+        m_progress->setMinimumDuration(0);
+        connect(m_progress, &QProgressDialog::canceled, this, [this] {
+            emit updateDownloadCanceled();
+            closeProgress();
+        });
+    }
+    m_progress->setRange(0, 0);
+    m_progress->setLabelText(QStringLiteral("正在下载更新包…"));
+    m_progress->show();
+}
+
+void SettingsDialog::closeProgress()
+{
+    if (!m_progress)
+        return;
+    m_progress->hide();
+    m_progress->deleteLater();
+    m_progress = nullptr;
 }
 
 void SettingsDialog::setUpdateChecking(bool checking)

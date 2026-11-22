@@ -4,6 +4,7 @@
 #include "app/screenshotoutput.h"
 #include "app/traycontroller.h"
 #include "app/updatechecker.h"
+#include "app/updateinstaller.h"
 #include "capture/screencapture.h"
 #include "platform/autostart.h"
 #include "platform/globalhotkey.h"
@@ -169,6 +170,21 @@ void AppController::openSettings()
             &SettingsDialog::showUpToDate);
     connect(updateChecker, &UpdateChecker::failed, &dialog,
             &SettingsDialog::showUpdateFailed);
+
+    // 下载与安装同样放在 app 层，安装时由 pkexec 弹出系统授权窗口
+    auto* updateInstaller = new UpdateInstaller(&dialog);
+    connect(&dialog, &SettingsDialog::installUpdateRequested, updateInstaller,
+            &UpdateInstaller::installFromUrl);
+    connect(&dialog, &SettingsDialog::updateDownloadCanceled, updateInstaller,
+            &UpdateInstaller::cancel);
+    connect(updateInstaller, &UpdateInstaller::downloadProgress, &dialog,
+            &SettingsDialog::showDownloadProgress);
+    connect(updateInstaller, &UpdateInstaller::installing, &dialog,
+            &SettingsDialog::showInstalling);
+    connect(updateInstaller, &UpdateInstaller::finished, &dialog,
+            &SettingsDialog::showInstallResult);
+    connect(updateInstaller, &UpdateInstaller::failed, &dialog,
+            &SettingsDialog::showInstallFailed);
 
     // 录制时立即试注册，冲突就地提示，不必等到关闭对话框
     dialog.setHotkeyValidator([this](const QKeySequence& sequence) -> QString {

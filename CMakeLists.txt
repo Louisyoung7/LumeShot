@@ -35,6 +35,7 @@ add_executable(screenshot
     src/app/screenshotoutput.cpp
     src/app/traycontroller.cpp
     src/app/updatechecker.cpp
+    src/app/updateinstaller.cpp
     src/capture/screencapture.cpp
     src/capture/scrollcapture.cpp
     src/config/appsettings.cpp

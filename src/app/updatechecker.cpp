@@ -1,8 +1,10 @@
 #include "app/updatechecker.h"
 
 #include <QCoreApplication>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonValue>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -79,9 +81,20 @@ void UpdateChecker::handleReply(QNetworkReply* reply)
         version.remove(0, 1);
 
     if (isNewerVersion(version, QCoreApplication::applicationVersion())) {
+        QString downloadUrl;
+        const QJsonArray assets = release.value(QStringLiteral("assets")).toArray();
+        for (const QJsonValue& value : assets) {
+            const QJsonObject asset = value.toObject();
+            if (asset.value(QStringLiteral("name")).toString().endsWith(QLatin1String(".deb"))) {
+                downloadUrl = asset.value(QStringLiteral("browser_download_url")).toString();
+                break;
+            }
+        }
+
         emit updateAvailable(version,
                              release.value(QStringLiteral("body")).toString(),
-                             release.value(QStringLiteral("html_url")).toString());
+                             release.value(QStringLiteral("html_url")).toString(),
+                             downloadUrl);
     } else {
         emit upToDate(version);
     }

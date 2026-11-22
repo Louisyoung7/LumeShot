@@ -18,7 +18,8 @@ public:
     void check();
 
 signals:
-    void updateAvailable(const QString& version, const QString& notes, const QString& releaseUrl);
+    void updateAvailable(const QString& version, const QString& notes,
+                         const QString& releaseUrl, const QString& downloadUrl);
     void upToDate(const QString& version);
     void failed(const QString& message);
 

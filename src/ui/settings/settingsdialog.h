@@ -9,6 +9,7 @@
 class QCheckBox;
 class QLabel;
 class QLineEdit;
+class QProgressDialog;
 class QPushButton;
 
 class SettingsDialog : public QDialog {
@@ -26,12 +27,18 @@ public:
 signals:
     // 由 app 层执行实际检查，界面只负责展示结果
     void checkUpdateRequested();
+    void installUpdateRequested(const QString& downloadUrl);
+    void updateDownloadCanceled();
 
 public slots:
     void showUpdateAvailable(const QString& version, const QString& notes,
-                             const QString& releaseUrl);
+                             const QString& releaseUrl, const QString& downloadUrl);
     void showUpToDate(const QString& version);
     void showUpdateFailed(const QString& message);
+    void showDownloadProgress(qint64 received, qint64 total);
+    void showInstalling();
+    void showInstallResult(bool success, const QString& message);
+    void showInstallFailed(const QString& message);
 
 protected:
     void accept() override;
@@ -40,6 +47,8 @@ private:
     void browseDirectory();
     void updateDirectoryEnabled();
     void setUpdateChecking(bool checking);
+    void showProgress();
+    void closeProgress();
 
     HotkeyEdit* m_hotkeyEdit = nullptr;
     QCheckBox* m_autoCopyCheck = nullptr;
@@ -49,4 +58,5 @@ private:
     QPushButton* m_browseButton = nullptr;
     QLabel* m_versionLabel = nullptr;
     QPushButton* m_checkUpdateButton = nullptr;
+    QProgressDialog* m_progress = nullptr;
 };
