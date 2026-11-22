@@ -17,6 +17,7 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 - 开机自启：可写入 XDG autostart，登录桌面时自动运行。
 - 系统托盘：托盘菜单提供全部入口；没有托盘时自动退回独立小窗口。
 - 自动处理：截图后自动复制到剪贴板、自动保存为 PNG。
+- 检查更新：在设置里检查新版本，可直接下载 deb 并通过系统授权窗口安装。
 - 配置持久化：通过 QSettings 保存，重启后保留。
 
 ## 使用说明
@@ -73,6 +74,7 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
 - 截图后自动保存为 PNG。
 - 自动保存目录：默认 `~/Pictures/Screenshots`。
 - 开机自动启动：登录桌面时自动运行，自启文件写入 `~/.config/autostart/lumeshot.desktop`。
+- 检查更新：查询 GitHub 最新 Release，发现新版本可下载 deb 并弹出系统授权窗口安装。
 
 自动复制和自动保存至少要开启一项。
 
@@ -120,7 +122,7 @@ cmake --build build -j
 - 版本号从 `CMakeLists.txt` 的 `project(... VERSION x.y.z)` 读取，只需要改这一处。
 - 程序、Qt 运行库和 xcb 插件装到 `/opt/lumeshot`，包内自带，不依赖系统 Qt 版本。
 - `Depends` 由实际链接的库自动计算，已内置的 Qt / ICU 会被排除。
-- 安装：`sudo apt install ./build/deb-out/lumeshot_0.1.0_amd64.deb`
+- 安装：`sudo apt install ./build/deb-out/lumeshot_0.2.0_amd64.deb`
 - 卸载：`sudo apt remove lumeshot`
 - 查版本：`lumeshot --version` 或 `dpkg -s lumeshot | grep Version`
 
@@ -130,8 +132,8 @@ cmake --build build -j
 
 | 位置 | 形式 |
 | --- | --- |
-| `CMakeLists.txt` | `project(ScreenShot VERSION 0.1.0 ...)` |
-| git tag | `v0.1.0` |
+| `CMakeLists.txt` | `project(ScreenShot VERSION 0.2.0 ...)` |
+| git tag | `v0.2.0` |
 
 发布流程：
 
