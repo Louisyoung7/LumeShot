@@ -36,7 +36,7 @@ void ScreenshotOutput::deliver(const QPixmap& capture, const QString& title)
             results << QStringLiteral("保存失败：无法创建目录 %1").arg(directory.path());
         } else {
             const QString path = directory.filePath(
-                QStringLiteral("Screenshot_%1.png")
+                QStringLiteral("LumeShot_%1.png")
                     .arg(QDateTime::currentDateTime().toString(
                         QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
             if (capture.save(path, "PNG")) {

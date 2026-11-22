@@ -17,9 +17,9 @@ int main(int argc, char* argv[])
     }
 
     QApplication app(argc, argv);
-    QApplication::setApplicationName(QStringLiteral("ScreenShot"));
-    QApplication::setOrganizationName(QStringLiteral("ScreenShot"));
-    QApplication::setApplicationDisplayName(QStringLiteral("ScreenShot"));
+    QApplication::setApplicationName(QStringLiteral("LumeShot"));
+    QApplication::setOrganizationName(QStringLiteral("LumeShot"));
+    QApplication::setApplicationDisplayName(QStringLiteral("LumeShot"));
     QApplication::setApplicationVersion(QStringLiteral(APP_VERSION));
     QApplication::setQuitOnLastWindowClosed(false);
 
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
     AppController controller;
     if (!controller.start()) {
-        QMessageBox::warning(nullptr, QStringLiteral("ScreenShot"),
+        QMessageBox::warning(nullptr, QStringLiteral("LumeShot"),
                              QStringLiteral("系统托盘和全局热键均不可用，程序无法运行。"));
         return 1;
     }

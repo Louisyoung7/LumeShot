@@ -11,4 +11,4 @@ Terminal=false
 Categories=Utility;Graphics;
 Keywords=screenshot;capture;snip;pin;截图;长截图;贴图;
 StartupNotify=false
-StartupWMClass=screenshot
+StartupWMClass=lumeshot

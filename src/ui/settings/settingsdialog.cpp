@@ -19,7 +19,7 @@
 SettingsDialog::SettingsDialog(const AppSettings& settings, QWidget* parent)
     : QDialog(parent)
 {
-    setWindowTitle(QStringLiteral("ScreenShot 设置"));
+    setWindowTitle(QStringLiteral("LumeShot 设置"));
     setModal(true);
     setMinimumWidth(480);
 

@@ -61,13 +61,13 @@ bool AppController::start()
     const QString hotkeyText = m_settings.hotkey.toString(QKeySequence::NativeText);
     const bool hotkeyReady = m_hotkey->grab(m_settings.hotkey);
 
-    qInfo("ScreenShot started: tray=%d hotkey=%d", int(trayAvailable), int(hotkeyReady));
+    qInfo("LumeShot started: tray=%d hotkey=%d", int(trayAvailable), int(hotkeyReady));
 
     if (!trayAvailable && !hotkeyReady)
         return false;
 
     QTimer::singleShot(500, this, [this, hotkeyReady, hotkeyText] {
-        notify(QStringLiteral("ScreenShot 已启动"),
+        notify(QStringLiteral("LumeShot 已启动"),
                hotkeyReady
                    ? QStringLiteral("按 %1 开始区域截图").arg(hotkeyText)
                    : QStringLiteral("全局热键注册失败，可在“设置…”里更换快捷键"));

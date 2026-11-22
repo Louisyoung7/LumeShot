@@ -9,7 +9,7 @@ TITLE="LumeShot"
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 # 版本号只从 CMakeLists 的 project(... VERSION x.y.z) 读取，避免多处维护
-VERSION=$(sed -n 's/^project(ScreenShot VERSION \([0-9][0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -1)
+VERSION=$(sed -n 's/^project(LumeShot VERSION \([0-9][0-9.]*\).*/\1/p' "$ROOT_DIR/CMakeLists.txt" | head -1)
 [[ -n "$VERSION" ]] || { echo "无法从 CMakeLists.txt 读取版本号" >&2; exit 1; }
 BUILD_ROOT="$ROOT_DIR/build"
 BUILD_DIR="$BUILD_ROOT/deb-build"
@@ -27,7 +27,7 @@ log "配置并构建 Release"
 cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SKIP_BUILD_RPATH=ON
 cmake --build "$BUILD_DIR" -j"$(nproc)"
 
-BINARY="$BUILD_DIR/screenshot"
+BINARY="$BUILD_DIR/lumeshot"
 [[ -x "$BINARY" ]] || { echo "构建产物不存在: $BINARY" >&2; exit 1; }
 
 # ---------- 2. 定位 Qt ----------
@@ -47,7 +47,7 @@ mkdir -p "$STAGE_DIR/DEBIAN" \
          "$STAGE_DIR/usr/share/icons/hicolor/scalable/apps" \
          "$OUT_DIR"
 
-install -m 0755 "$BINARY" "$APP_DIR/bin/screenshot"
+install -m 0755 "$BINARY" "$APP_DIR/bin/lumeshot"
 install -m 0644 "$ROOT_DIR/packaging/lumeshot.desktop" "$STAGE_DIR/usr/share/applications/$PKG.desktop"
 install -m 0644 "$ROOT_DIR/packaging/lumeshot.svg" "$STAGE_DIR/usr/share/icons/hicolor/scalable/apps/$PKG.svg"
 
@@ -96,7 +96,7 @@ done
 log "已收集 $(find "$APP_DIR/lib" -maxdepth 1 -type f | wc -l) 个 Qt 库文件"
 
 # 缺库检查：运行时所有 NEEDED 都必须能找到
-MISSING=$(LD_LIBRARY_PATH="$APP_DIR/lib" ldd "$APP_DIR/bin/screenshot" | grep "not found" || true)
+MISSING=$(LD_LIBRARY_PATH="$APP_DIR/lib" ldd "$APP_DIR/bin/lumeshot" | grep "not found" || true)
 if [[ -n "$MISSING" ]]; then
     echo "以下依赖未找到，打包中止：" >&2
     echo "$MISSING" >&2
@@ -109,7 +109,7 @@ cat > "$STAGE_DIR/usr/bin/$PKG" <<'EOF'
 DIR=/opt/lumeshot
 LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH
-exec "$DIR/bin/screenshot" "$@"
+exec "$DIR/bin/lumeshot" "$@"
 EOF
 chmod 0755 "$STAGE_DIR/usr/bin/$PKG"
 
@@ -132,7 +132,7 @@ EOF
 
 PLUGIN_SOS=$(find "$APP_DIR/plugins" -name '*.so' -type f)
 DEPENDS=$(cd "$SHLIB_DIR" && dpkg-shlibdeps --ignore-missing-info -O \
-            "$APP_DIR/bin/screenshot" $PLUGIN_SOS 2>/dev/null \
+            "$APP_DIR/bin/lumeshot" $PLUGIN_SOS 2>/dev/null \
           | sed -n 's/^shlibs:Depends=//p' || true)
 # Qt 与 ICU 已随包内置，不需要系统再装
 DEPENDS=$(printf '%s' "$DEPENDS" | tr ',' '\n' | sed 's/^ *//; s/ *$//' \

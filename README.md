@@ -72,7 +72,7 @@ Linux X11 下的截屏工具，基于 Qt6 / C++17 编写。
   - 录制时立即试注册，被系统或其他程序占用会就地弹窗提示。
 - 截图后自动复制到剪贴板。
 - 截图后自动保存为 PNG。
-- 自动保存目录：默认 `~/Pictures/Screenshots`。
+- 自动保存目录：默认 `~/Pictures/LumeShot`。
 - 开机自动启动：登录桌面时自动运行，自启文件写入 `~/.config/autostart/lumeshot.desktop`。
 - 检查更新：查询 GitHub 最新 Release，发现新版本可下载 deb 并弹出系统授权窗口安装。
 
@@ -107,8 +107,8 @@ sudo pacman -S base-devel cmake libx11 qt6-base
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/screenshot
-./build/screenshot --version    # 打印当前版本
+./build/lumeshot
+./build/lumeshot --version    # 打印当前版本
 ```
 
 ## 打包 deb
@@ -132,14 +132,14 @@ cmake --build build -j
 
 | 位置 | 形式 |
 | --- | --- |
-| `CMakeLists.txt` | `project(ScreenShot VERSION 0.2.1 ...)` |
+| `CMakeLists.txt` | `project(LumeShot VERSION 0.2.1 ...)` |
 | git tag | `v0.2.1` |
 
 发布流程：
 
 ```bash
 # 1. 改版本号并提交
-#    CMakeLists.txt: project(ScreenShot VERSION 0.2.1 LANGUAGES CXX)
+#    CMakeLists.txt: project(LumeShot VERSION 0.2.1 LANGUAGES CXX)
 git commit -am "chore: 版本号 0.2.1"
 
 # 2. 打 tag 并推送，触发 CI
@@ -203,5 +203,5 @@ src/
 配置由 QSettings 保存，默认路径：
 
 ```text
-~/.config/ScreenShot/ScreenShot.conf
+~/.config/LumeShot/LumeShot.conf
 ```

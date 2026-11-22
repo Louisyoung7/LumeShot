@@ -40,7 +40,7 @@ bool TrayController::start()
 
     if (trayAvailable) {
         m_tray = new QSystemTrayIcon(createTrayIcon(), this);
-        m_tray->setToolTip(QStringLiteral("ScreenShot 截屏工具"));
+        m_tray->setToolTip(QStringLiteral("LumeShot 截屏工具"));
 
         auto* menu = new QMenu();
         m_regionAction = menu->addAction(QString());
@@ -90,7 +90,7 @@ void TrayController::notify(const QString& title, const QString& message) const
 void TrayController::showFallbackWindow()
 {
     m_fallbackWindow = new QWidget;
-    m_fallbackWindow->setWindowTitle(QStringLiteral("ScreenShot"));
+    m_fallbackWindow->setWindowTitle(QStringLiteral("LumeShot"));
     m_fallbackWindow->setAttribute(Qt::WA_DeleteOnClose);
 
     auto* layout = new QVBoxLayout(m_fallbackWindow);

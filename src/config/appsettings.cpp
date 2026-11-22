@@ -59,5 +59,5 @@ QString AppSettings::effectiveSaveDirectory() const
     QString pictures = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     if (pictures.isEmpty())
         pictures = QDir::homePath();
-    return pictures + QStringLiteral("/Screenshots");
+    return pictures + QStringLiteral("/LumeShot");
 }
