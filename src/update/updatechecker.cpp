@@ -1,20 +1,16 @@
 #include "update/updatechecker.h"
 
+#include "update/releasemetadata.h"
 #include "update/version.h"
 
 #include <QCoreApplication>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonValue>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QUrl>
 
 namespace {
-constexpr auto kLatestReleaseUrl =
-    "https://api.github.com/repos/Louisyoung7/LumeShot/releases/latest";
+constexpr auto kReleasesFeedUrl = "https://github.com/Louisyoung7/LumeShot/releases.atom";
 }
 
 UpdateChecker::UpdateChecker(QObject* parent)
@@ -37,8 +33,8 @@ void UpdateChecker::check()
     if (m_reply)
         return;
 
-    QNetworkRequest request{QUrl(QString::fromLatin1(kLatestReleaseUrl))};
-    request.setRawHeader("Accept", "application/vnd.github+json");
+    QNetworkRequest request{QUrl(QString::fromLatin1(kReleasesFeedUrl))};
+    request.setRawHeader("Accept", "application/atom+xml");
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       QStringLiteral("LumeShot/%1")
                           .arg(QCoreApplication::applicationVersion()));
@@ -61,55 +57,20 @@ void UpdateChecker::handleReply(QNetworkReply* reply)
     m_reply = nullptr;
 
     if (error != QNetworkReply::NoError) {
-        // GitHub 的错误响应体里有可读的 message；HTTP/2 下 Qt 的 errorString 经常只剩空壳
-        QString message = errorText;
-        const QJsonObject apiError = QJsonDocument::fromJson(payload).object();
-        const QString apiMessage = apiError.value(QStringLiteral("message")).toString();
-        if (!apiMessage.isEmpty())
-            message = apiMessage;
-
-        // 仓库尚未发布任何 Release 时 GitHub 返回 404；未认证请求容易触发 403 限流
-        if (status == 404)
-            message = QStringLiteral("上游还没有发布过版本。");
-        else if (status == 403 && message.contains(QStringLiteral("rate limit"), Qt::CaseInsensitive))
-            message = QStringLiteral("GitHub API 请求次数已达上限，请稍后再试。");
-
-        emit failed(message);
+        emit failed(status == 404 ? QStringLiteral("上游还没有发布过版本。") : errorText);
         return;
     }
 
-    QJsonParseError parseError{};
-    const QJsonDocument document = QJsonDocument::fromJson(payload, &parseError);
-    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+    update::ReleaseInfo release;
+    if (!update::parseAtomFeed(payload, &release)) {
         emit failed(QStringLiteral("更新信息解析失败。"));
         return;
     }
 
-    const QJsonObject release = document.object();
-    QString version = release.value(QStringLiteral("tag_name")).toString();
-    if (version.isEmpty()) {
-        emit failed(QStringLiteral("更新信息里缺少版本号。"));
-        return;
-    }
-    if (version.startsWith(QLatin1Char('v')))
-        version.remove(0, 1);
-
-    if (update::isNewerVersion(version, QCoreApplication::applicationVersion())) {
-        QString downloadUrl;
-        const QJsonArray assets = release.value(QStringLiteral("assets")).toArray();
-        for (const QJsonValue& value : assets) {
-            const QJsonObject asset = value.toObject();
-            if (asset.value(QStringLiteral("name")).toString().endsWith(QLatin1String(".deb"))) {
-                downloadUrl = asset.value(QStringLiteral("browser_download_url")).toString();
-                break;
-            }
-        }
-
-        emit updateAvailable(version,
-                             release.value(QStringLiteral("body")).toString(),
-                             release.value(QStringLiteral("html_url")).toString(),
-                             downloadUrl);
+    if (update::isNewerVersion(release.version, QCoreApplication::applicationVersion())) {
+        emit updateAvailable(release.version, release.notes, release.releaseUrl,
+                             update::debDownloadUrl(release.version));
     } else {
-        emit upToDate(version);
+        emit upToDate(release.version);
     }
 }

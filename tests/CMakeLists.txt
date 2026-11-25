@@ -3,6 +3,7 @@ set(LUMESHOT_TEST_SUPPORT_SOURCES
     ${PROJECT_SOURCE_DIR}/src/capture/stitch.cpp
     ${PROJECT_SOURCE_DIR}/src/capture/scrollsession.cpp
     ${PROJECT_SOURCE_DIR}/src/update/version.cpp
+    ${PROJECT_SOURCE_DIR}/src/update/releasemetadata.cpp
     ${PROJECT_SOURCE_DIR}/src/config/appsettings.cpp
 )
 
@@ -14,6 +15,7 @@ set(LUMESHOT_TESTS
     tst_stitch
     tst_scrollsession
     tst_version
+    tst_releasemetadata
     tst_appsettings
 )
 

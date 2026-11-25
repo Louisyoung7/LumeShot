@@ -62,6 +62,7 @@ set(LUMESHOT_PLATFORM_SOURCES
 )
 
 set(LUMESHOT_UPDATE_SOURCES
+    src/update/releasemetadata.cpp
     src/update/updatechecker.cpp
     src/update/updateinstaller.cpp
     src/update/version.cpp
