@@ -7,6 +7,7 @@
 #include "ui/settings/hotkeyedit.h"
 
 class QCheckBox;
+class QEvent;
 class QLabel;
 class QLineEdit;
 class QProgressDialog;
@@ -42,6 +43,7 @@ public slots:
 
 protected:
     void accept() override;
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
     void browseDirectory();
@@ -59,4 +61,5 @@ private:
     QLabel* m_versionLabel = nullptr;
     QPushButton* m_checkUpdateButton = nullptr;
     QProgressDialog* m_progress = nullptr;
+    bool m_installing = false;
 };

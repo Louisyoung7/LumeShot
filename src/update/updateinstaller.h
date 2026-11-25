@@ -40,4 +40,5 @@ private:
     QFile* m_file = nullptr;
     QString m_targetPath;
     bool m_canceled = false;
+    bool m_writeFailed = false;
 };

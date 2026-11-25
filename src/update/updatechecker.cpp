@@ -61,8 +61,20 @@ void UpdateChecker::handleReply(QNetworkReply* reply)
     m_reply = nullptr;
 
     if (error != QNetworkReply::NoError) {
-        // 仓库尚未发布任何 Release 时 GitHub 返回 404
-        emit failed(status == 404 ? QStringLiteral("上游还没有发布过版本。") : errorText);
+        // GitHub 的错误响应体里有可读的 message；HTTP/2 下 Qt 的 errorString 经常只剩空壳
+        QString message = errorText;
+        const QJsonObject apiError = QJsonDocument::fromJson(payload).object();
+        const QString apiMessage = apiError.value(QStringLiteral("message")).toString();
+        if (!apiMessage.isEmpty())
+            message = apiMessage;
+
+        // 仓库尚未发布任何 Release 时 GitHub 返回 404；未认证请求容易触发 403 限流
+        if (status == 404)
+            message = QStringLiteral("上游还没有发布过版本。");
+        else if (status == 403 && message.contains(QStringLiteral("rate limit"), Qt::CaseInsensitive))
+            message = QStringLiteral("GitHub API 请求次数已达上限，请稍后再试。");
+
+        emit failed(message);
         return;
     }
 

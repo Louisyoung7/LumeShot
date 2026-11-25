@@ -4,9 +4,11 @@
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDialogButtonBox>
+#include <QEvent>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -203,6 +205,7 @@ void SettingsDialog::showInstalling()
 {
     if (!m_progress)
         return;
+    m_installing = true;
     m_progress->setRange(0, 0);
     m_progress->setLabelText(QStringLiteral("正在安装，请在授权窗口输入密码…"));
     m_progress->setCancelButton(nullptr);
@@ -232,6 +235,7 @@ void SettingsDialog::showProgress()
         m_progress->setAutoClose(false);
         m_progress->setAutoReset(false);
         m_progress->setMinimumDuration(0);
+        m_progress->installEventFilter(this);
         connect(m_progress, &QProgressDialog::canceled, this, [this] {
             emit updateDownloadCanceled();
             closeProgress();
@@ -246,9 +250,22 @@ void SettingsDialog::closeProgress()
 {
     if (!m_progress)
         return;
+    m_progress->removeEventFilter(this);
     m_progress->hide();
     m_progress->deleteLater();
     m_progress = nullptr;
+    m_installing = false;
+}
+
+bool SettingsDialog::eventFilter(QObject* obj, QEvent* event)
+{
+    // 进入安装阶段后 QProgressDialog 没有取消按钮，但 ESC 仍会关闭它并误让用户以为已取消
+    if (m_installing && obj == m_progress && event->type() == QEvent::KeyPress) {
+        const auto* key = static_cast<const QKeyEvent*>(event);
+        if (key->key() == Qt::Key_Escape)
+            return true;
+    }
+    return QDialog::eventFilter(obj, event);
 }
 
 void SettingsDialog::setUpdateChecking(bool checking)

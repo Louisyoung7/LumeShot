@@ -29,6 +29,7 @@ UpdateInstaller::~UpdateInstaller()
         m_process->kill();
     }
     cleanupDownload();
+    removeDownloadedFile();
 }
 
 void UpdateInstaller::installFromUrl(const QString& url)
@@ -43,6 +44,7 @@ void UpdateInstaller::installFromUrl(const QString& url)
 
     m_targetPath = QDir(QDir::tempPath()).filePath(fileName);
     m_canceled = false;
+    m_writeFailed = false;
 
     m_file = new QFile(m_targetPath, this);
     if (!m_file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -61,8 +63,11 @@ void UpdateInstaller::installFromUrl(const QString& url)
 
     m_reply = m_network->get(request);
     connect(m_reply, &QNetworkReply::readyRead, this, [this] {
-        if (m_file && m_reply && m_reply->isOpen())
-            m_file->write(m_reply->readAll());
+        if (m_file && m_reply && m_reply->isOpen()) {
+            const QByteArray chunk = m_reply->readAll();
+            if (m_file->write(chunk) != chunk.size())
+                m_writeFailed = true;
+        }
     });
     connect(m_reply, &QNetworkReply::downloadProgress, this, &UpdateInstaller::downloadProgress);
     connect(m_reply, &QNetworkReply::finished, this, &UpdateInstaller::handleDownloadFinished);
@@ -81,8 +86,11 @@ void UpdateInstaller::handleDownloadFinished()
         return;
 
     if (m_file) {
-        if (m_reply->isOpen())
-            m_file->write(m_reply->readAll());
+        if (m_reply->isOpen()) {
+            const QByteArray chunk = m_reply->readAll();
+            if (m_file->write(chunk) != chunk.size())
+                m_writeFailed = true;
+        }
         m_file->close();
     }
 
@@ -104,10 +112,12 @@ void UpdateInstaller::handleDownloadFinished()
         return;
     }
 
-    if (!m_file || m_file->size() == 0) {
+    const bool writeError = m_writeFailed || (m_file && m_file->error() != QFileDevice::NoError);
+    if (writeError || !m_file || m_file->size() == 0) {
         cleanupDownload();
         removeDownloadedFile();
-        emit failed(QStringLiteral("下载的安装包为空。"));
+        emit failed(writeError ? QStringLiteral("写入安装包失败，请检查临时目录空间。")
+                               : QStringLiteral("下载的安装包为空。"));
         return;
     }
 
@@ -148,6 +158,7 @@ void UpdateInstaller::startInstall()
         m_process->deleteLater();
         m_process = nullptr;
         cleanupDownload();
+        removeDownloadedFile();
         emit failed(message);
     });
     connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
@@ -162,6 +173,7 @@ void UpdateInstaller::startInstall()
                     QString detail = QString::fromLocal8Bit(output).trimmed();
                     if (detail.isEmpty() && (exitCode == 126 || exitCode == 127))
                         detail = QStringLiteral("授权被取消或未通过。");
+                    removeDownloadedFile();
                     emit finished(false, detail.isEmpty()
                                              ? QStringLiteral("安装失败（退出码 %1）。").arg(exitCode)
                                              : detail);
