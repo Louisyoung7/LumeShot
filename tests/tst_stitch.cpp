@@ -1,72 +1,151 @@
 #include <QtTest>
 
-#include <QImage>
+#include <QElapsedTimer>
 
 #include "capture/stitch.h"
+#include "pagefixture.h"
 
-namespace {
-
-constexpr int kWidth = 160;
-constexpr int kHeight = 300;
-
-// 每行颜色由绝对行号决定，滚动后同一内容行保持一致
-QImage makeFrame(int startRow)
-{
-    QImage image(kWidth, kHeight, QImage::Format_RGB32);
-    for (int y = 0; y < kHeight; ++y) {
-        const int row = startRow + y;
-        const QRgb color = qRgb((row * 37) % 251, (row * 91) % 241, (row * 151) % 239);
-        QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(y));
-        for (int x = 0; x < kWidth; ++x)
-            line[x] = color;
-    }
-    return image;
-}
-
-} // namespace
+using namespace fixture;
 
 class TestStitch : public QObject {
     Q_OBJECT
 
 private slots:
     void detectsScrolledOverlap();
+    void detectsSlowScroll();
+    void detectsOnePixelScroll();
+    void detectsFastScroll();
     void identicalFrameReportsNoScroll();
     void unrelatedFrameReportsNoMatch();
     void overlapBelowMinimumIsRejected();
+    void toleratesBrightnessShift();
+    void toleratesNoise();
+    void toleratesPinnedHeader();
+    void toleratesAnimatedStrip();
+    void ignoresScrollbar();
+    void rejectsLowTexture();
+    void repetitivePatternPrefersLargestOverlap();
+    void rejectsHorizontalJitter();
+    void rejectsReverseScroll();
+    void rejectsSizeMismatch();
+    void keepsPerformanceBudget();
 };
 
 void TestStitch::detectsScrolledOverlap()
 {
-    const QImage tail = makeFrame(0);
-    const QImage frame = makeFrame(40);
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(40)), 260);
+}
 
-    // 当前帧顶部有 260 行与上一帧底部重合
-    QCOMPARE(stitch::detectOverlap(tail, frame), 260);
+void TestStitch::detectsSlowScroll()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(4)), 296);
+}
+
+void TestStitch::detectsOnePixelScroll()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(1)), 299);
+}
+
+void TestStitch::detectsFastScroll()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(280)), 20);
 }
 
 void TestStitch::identicalFrameReportsNoScroll()
 {
-    const QImage frame = makeFrame(0);
+    const QImage frame = pageFrame(0);
     QCOMPARE(stitch::detectOverlap(frame, frame), -1);
 }
 
 void TestStitch::unrelatedFrameReportsNoMatch()
 {
-    QImage tail(kWidth, kHeight, QImage::Format_RGB32);
-    tail.fill(Qt::black);
-    QImage frame(kWidth, kHeight, QImage::Format_RGB32);
-    frame.fill(Qt::white);
+    QImage black(kPageWidth, kFrameHeight, QImage::Format_RGB32);
+    black.fill(Qt::black);
+    QImage white(kPageWidth, kFrameHeight, QImage::Format_RGB32);
+    white.fill(Qt::white);
 
-    QCOMPARE(stitch::detectOverlap(tail, frame), 0);
+    QCOMPARE(stitch::detectOverlap(black, white), 0);
 }
 
 void TestStitch::overlapBelowMinimumIsRejected()
 {
-    // 只重合 10 行，低于最少重叠行数，应判为不可靠
-    const QImage tail = makeFrame(0);
-    const QImage frame = makeFrame(290);
+    // 只重合 10 行，低于最少重叠行数
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(290)), 0);
+}
 
-    QCOMPARE(stitch::detectOverlap(tail, frame), 0);
+void TestStitch::toleratesBrightnessShift()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), withBrightness(pageFrame(40), 10)), 260);
+}
+
+void TestStitch::toleratesNoise()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), withNoise(pageFrame(40), 2)), 260);
+}
+
+void TestStitch::toleratesPinnedHeader()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0, kFrameHeight, kPageWidth, true),
+                                   pageFrame(40, kFrameHeight, kPageWidth, true)),
+             260);
+}
+
+void TestStitch::toleratesAnimatedStrip()
+{
+    const QImage tail = withAnimation(pageFrame(0), 0);
+    const QImage frame = withAnimation(pageFrame(40), 1);
+
+    QCOMPARE(stitch::detectOverlap(tail, frame), 260);
+}
+
+void TestStitch::ignoresScrollbar()
+{
+    const QImage tail = withScrollbar(pageFrame(0), 0);
+    const QImage frame = withScrollbar(pageFrame(40), 1);
+
+    QCOMPARE(stitch::detectOverlap(tail, frame), 260);
+}
+
+void TestStitch::rejectsLowTexture()
+{
+    QCOMPARE(stitch::detectOverlap(lowTextureFrame(0), lowTextureFrame(40)), 0);
+}
+
+void TestStitch::repetitivePatternPrefersLargestOverlap()
+{
+    QCOMPARE(stitch::detectOverlap(repeatedFrame(0), repeatedFrame(40)), 260);
+}
+
+void TestStitch::rejectsHorizontalJitter()
+{
+    // 用户确认：横向抖动直接拒绝该帧，不做补偿
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), shiftedHorizontally(pageFrame(40), 2)), 0);
+}
+
+void TestStitch::rejectsReverseScroll()
+{
+    // 用户确认：反向滚动丢弃该帧，不回退
+    QCOMPARE(stitch::detectOverlap(pageFrame(40), pageFrame(0)), 0);
+}
+
+void TestStitch::rejectsSizeMismatch()
+{
+    QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(40, kFrameHeight, kPageWidth - 4)),
+             0);
+}
+
+void TestStitch::keepsPerformanceBudget()
+{
+    const QImage tail = pageFrame(0, 1080, 1920);
+    const QImage frame = pageFrame(40, 1080, 1920);
+
+    QElapsedTimer timer;
+    timer.start();
+    const int overlap = stitch::detectOverlap(tail, frame);
+    const qint64 elapsed = timer.elapsed();
+
+    QCOMPARE(overlap, 1040);
+    QVERIFY2(elapsed < 100, qPrintable(QStringLiteral("耗时 %1ms").arg(elapsed)));
 }
 
 QTEST_GUILESS_MAIN(TestStitch)

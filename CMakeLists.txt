@@ -44,6 +44,7 @@ set(LUMESHOT_APP_SOURCES
 set(LUMESHOT_CAPTURE_SOURCES
     src/capture/screencapture.cpp
     src/capture/scrollcapture.cpp
+    src/capture/scrollsession.cpp
     src/capture/stitch.cpp
 )
 

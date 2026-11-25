@@ -1,10 +1,11 @@
-// 模块 capture：长截图——定时抓取固定区域，与已拼接结果的底部缓冲区做重叠匹配。
+// 模块 capture：长截图——定时抓取固定区域，交给 ScrollSession 做重叠判定与拼接。
 #pragma once
+
+#include "capture/scrollsession.h"
 
 #include <QImage>
 #include <QObject>
 #include <QRect>
-#include <QVector>
 
 class QTimer;
 
@@ -29,16 +30,11 @@ signals:
 private:
     void scheduleNext();
     void captureFrame();
-    void updateTail(const QImage& frame, int overlap);
     void appendThumbnail(const QImage& piece);
-    QImage compose() const;
 
     QTimer* m_timer = nullptr;
     QRect m_region;
-    QImage m_tail;            // 已拼接结果底部最多一屏的画面
-    QImage m_thumbnail;       // 供侧边栏预览的缩略图，宽度固定
-    QVector<QImage> m_pieces; // 每帧新增的行
-    int m_totalHeight = 0;    // 物理像素
-    qreal m_devicePixelRatio = 1.0;
+    ScrollSession m_session;
+    QImage m_thumbnail; // 供侧边栏预览的缩略图，宽度固定
     bool m_running = false;
 };

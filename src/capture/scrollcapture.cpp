@@ -1,15 +1,13 @@
 #include "capture/scrollcapture.h"
 
 #include "capture/screencapture.h"
-#include "capture/stitch.h"
 
 #include <QPainter>
 #include <QTimer>
 
 namespace {
-constexpr int kCaptureIntervalMs = 200;       // 抓帧间隔
-constexpr int kMaxPixelsHeight = 20000;       // 拼接高度上限（物理像素）
-constexpr int kPreviewWidth = 140;            // 侧边栏预览缩略图的宽度
+constexpr int kCaptureIntervalMs = 200; // 抓帧间隔
+constexpr int kPreviewWidth = 140;      // 侧边栏预览缩略图的宽度
 } // namespace
 
 ScrollCapture::ScrollCapture(QObject* parent)
@@ -26,11 +24,8 @@ void ScrollCapture::start(const QRect& region)
         return;
 
     m_region = region;
-    m_tail = QImage();
+    m_session.reset();
     m_thumbnail = QImage();
-    m_pieces.clear();
-    m_totalHeight = 0;
-    m_devicePixelRatio = 1.0;
     m_running = true;
     m_timer->start(0);
 }
@@ -43,14 +38,13 @@ void ScrollCapture::finish()
     m_running = false;
     m_timer->stop();
 
-    if (m_pieces.isEmpty()) {
+    if (m_session.isEmpty()) {
         emit canceled();
         return;
     }
 
-    const QImage result = compose();
-    m_pieces.clear();
-    m_tail = QImage();
+    const QImage result = m_session.compose();
+    m_session.reset();
     m_thumbnail = QImage();
     emit finished(result);
 }
@@ -62,8 +56,7 @@ void ScrollCapture::cancel()
 
     m_running = false;
     m_timer->stop();
-    m_pieces.clear();
-    m_tail = QImage();
+    m_session.reset();
     m_thumbnail = QImage();
     emit canceled();
 }
@@ -87,28 +80,12 @@ void ScrollCapture::captureFrame()
     }
     frame = frame.convertToFormat(QImage::Format_RGB32);
 
-    if (m_pieces.isEmpty()) {
-        m_devicePixelRatio = frame.devicePixelRatio();
-        frame.setDevicePixelRatio(1.0);
-        m_tail = frame;
-        m_pieces.append(frame);
-        appendThumbnail(frame);
-        m_totalHeight = frame.height();
-    } else if (frame.size() == m_tail.size()) {
-        frame.setDevicePixelRatio(1.0);
-        const int overlap = stitch::detectOverlap(m_tail, frame);
-        if (overlap > 0 && m_totalHeight + (frame.height() - overlap) <= kMaxPixelsHeight) {
-            const int newRows = frame.height() - overlap;
-            const QImage piece = frame.copy(0, overlap, frame.width(), newRows);
-            m_pieces.append(piece);
-            appendThumbnail(piece);
-            m_totalHeight += newRows;
-            updateTail(frame, overlap);
-        }
-        // overlap 为 0：这一帧匹配不可靠，直接丢弃，避免拼出重复内容
-    }
+    const ScrollSession::Result result = m_session.addFrame(frame);
+    if (result.outcome == ScrollSession::Outcome::Appended)
+        appendThumbnail(result.piece);
 
-    emit previewChanged(m_thumbnail, qRound(m_totalHeight / m_devicePixelRatio));
+    emit previewChanged(m_thumbnail,
+                        qRound(m_session.totalHeight() / m_session.devicePixelRatio()));
     scheduleNext();
 }
 
@@ -134,37 +111,4 @@ void ScrollCapture::appendThumbnail(const QImage& piece)
     painter.drawImage(0, m_thumbnail.height(), scaled);
     painter.end();
     m_thumbnail = combined;
-}
-
-void ScrollCapture::updateTail(const QImage& frame, int overlap)
-{
-    const int height = frame.height();
-    const int newRows = height - overlap;
-    if (newRows <= 0)
-        return;
-
-    QImage combined(frame.width(), height + newRows, QImage::Format_RGB32);
-    QPainter painter(&combined);
-    painter.drawImage(0, 0, m_tail);
-    painter.drawImage(0, height, frame, 0, overlap, frame.width(), newRows);
-    painter.end();
-
-    // 只保留底部最多一屏，供下一帧比对
-    m_tail = combined.copy(0, newRows, combined.width(), height);
-}
-
-QImage ScrollCapture::compose() const
-{
-    const QImage& first = m_pieces.first();
-    QImage result(first.width(), m_totalHeight, QImage::Format_ARGB32_Premultiplied);
-    result.fill(Qt::black);
-
-    QPainter painter(&result);
-    int y = 0;
-    for (const QImage& piece : m_pieces) {
-        painter.drawImage(QPoint(0, y), piece);
-        y += piece.height();
-    }
-    result.setDevicePixelRatio(m_devicePixelRatio);
-    return result;
 }

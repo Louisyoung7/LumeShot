@@ -1,6 +1,7 @@
 # 单元测试只编译与界面无关的纯逻辑，避免引入 X11 / Widgets 依赖。
 set(LUMESHOT_TEST_SUPPORT_SOURCES
     ${PROJECT_SOURCE_DIR}/src/capture/stitch.cpp
+    ${PROJECT_SOURCE_DIR}/src/capture/scrollsession.cpp
     ${PROJECT_SOURCE_DIR}/src/update/version.cpp
     ${PROJECT_SOURCE_DIR}/src/config/appsettings.cpp
 )
@@ -11,6 +12,7 @@ target_link_libraries(lumeshot_test_support PUBLIC Qt6::Core Qt6::Gui)
 
 set(LUMESHOT_TESTS
     tst_stitch
+    tst_scrollsession
     tst_version
     tst_appsettings
 )
