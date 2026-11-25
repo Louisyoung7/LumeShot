@@ -171,15 +171,18 @@ ctest --test-dir build --output-on-failure
 ## 打包 deb
 
 ```bash
-./packaging/build-deb.sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel "$(nproc)"
+cpack --config build/CPackConfig.cmake -B build/package
 ```
 
-产物：`build/deb-out/lumeshot_<版本>_amd64.deb` 和同名 `.sha256`
+产物：`build/package/lumeshot_<版本>_<架构>.deb`
 
 - 版本号从 `CMakeLists.txt` 的 `project(... VERSION x.y.z)` 读取，只需要改这一处。
-- 程序、Qt 运行库和 xcb 插件装到 `/opt/lumeshot`，包内自带，不依赖系统 Qt 版本。
-- `Depends` 由实际链接的库自动计算，已内置的 Qt / ICU 会被排除。
-- 安装：`sudo apt install ./build/deb-out/lumeshot_0.3.0_amd64.deb`
+- 程序、Qt 运行库和插件装到 `/opt/lumeshot`，`/usr/bin/lumeshot` 是指向它的软链接，不依赖系统 Qt 版本。
+- 运行库与插件由 CMake 的 Qt 官方部署脚本 `qt_generate_deploy_app_script` 收集；输入法插件显式包含，eglfs 与 networkinformation 插件排除。
+- `Depends` 在 `CMakeLists.txt` 里手工声明，内置的 Qt / ICU 不计入依赖。
+- 安装：`sudo apt install ./build/package/lumeshot_0.3.0_amd64.deb`
 - 卸载：`sudo apt remove lumeshot`
 - 查版本：`lumeshot --version` 或 `dpkg -s lumeshot | grep Version`
 

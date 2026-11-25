@@ -42,25 +42,53 @@ jobs:
             exit 1
           fi
 
-      - name: 构建 deb
-        run: ./packaging/build-deb.sh
-
-      - name: 校验安装包版本
+      - name: 配置并构建
         run: |
-          deb_version=$(dpkg-deb -f build/deb-out/*.deb Version)
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel "$(nproc)"
+
+      - name: 打包 deb
+        run: cpack --config build/CPackConfig.cmake -B build/package
+
+      - name: 校验安装包
+        run: |
+          deb=$(ls build/package/*.deb | head -1)
+          dpkg-deb -I "$deb"
+          dpkg-deb -c "$deb"
+          deb_version=$(dpkg-deb -f "$deb" Version)
           echo "包版本: $deb_version"
           if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$deb_version" != "${GITHUB_REF_NAME#v}" ]; then
             echo "::error::deb 版本 $deb_version 与 tag $GITHUB_REF_NAME 不一致"
             exit 1
           fi
 
+          root=$(mktemp -d)
+          dpkg-deb -x "$deb" "$root"
+          "$root/opt/lumeshot/bin/lumeshot" --version
+          if ldd "$root/opt/lumeshot/bin/lumeshot" | grep -q "not found"; then
+            echo "::error::安装包内存在未解析的依赖"
+            ldd "$root/opt/lumeshot/bin/lumeshot" | grep "not found"
+            exit 1
+          fi
+          if ! readelf -d "$root/opt/lumeshot/bin/lumeshot" | grep -q 'RUNPATH.*\$ORIGIN/../lib'; then
+            echo "::error::程序 RUNPATH 不是预期的相对路径"
+            readelf -d "$root/opt/lumeshot/bin/lumeshot" | grep -E 'RUNPATH|RPATH' || true
+            exit 1
+          fi
+
+      - name: 生成校验文件
+        run: |
+          cd build/package
+          sha256sum *.deb > checksums.sha256
+          sha256sum -c checksums.sha256
+
       - name: 上传构建产物
         uses: actions/upload-artifact@v7
         with:
           name: lumeshot-deb
           path: |
-            build/deb-out/*.deb
-            build/deb-out/*.sha256
+            build/package/*.deb
+            build/package/checksums.sha256
           if-no-files-found: error
 
   release:

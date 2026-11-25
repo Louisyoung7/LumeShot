@@ -78,7 +78,7 @@ set(LUMESHOT_UI_SOURCES
     src/ui/settings/settingsdialog.cpp
 )
 
-add_executable(lumeshot
+qt_add_executable(lumeshot
     src/main.cpp
     ${LUMESHOT_APP_SOURCES}
     ${LUMESHOT_CAPTURE_SOURCES}
@@ -102,6 +102,38 @@ target_link_libraries(lumeshot PRIVATE
     ${X11_Xi_LIB}
 )
 
+# 输入法插件不在 Qt 默认部署集合里，需显式包含；桌面端用不到 eglfs 与 networkinformation 插件
+qt_import_plugins(lumeshot
+    INCLUDE Qt6::QIbusPlatformInputContextPlugin Qt6::QComposePlatformInputContextPlugin
+    EXCLUDE_BY_TYPE egldeviceintegrations
+    EXCLUDE_BY_TYPE networkinformation
+)
+
+# ---------- 安装 ----------
+include(GNUInstallDirs)
+
+# 安装后的程序从 ../lib 找内置 Qt 库；Qt 官方插件自带 $ORIGIN/../../lib
+set_target_properties(lumeshot PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
+
+install(TARGETS lumeshot RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES packaging/lumeshot.desktop DESTINATION /usr/share/applications)
+install(FILES packaging/lumeshot.svg DESTINATION /usr/share/icons/hicolor/scalable/apps)
+
+# /usr/bin 下放软链接，实际程序在 /opt/lumeshot
+install(CODE [[
+    file(MAKE_DIRECTORY "$ENV{DESTDIR}/usr/bin")
+    file(CREATE_LINK "${CMAKE_INSTALL_PREFIX}/bin/lumeshot"
+         "$ENV{DESTDIR}/usr/bin/lumeshot" SYMBOLIC)
+]])
+
+# 安装时由 Qt 官方部署脚本收集运行库与插件，不再手写 DT_NEEDED 遍历
+qt_generate_deploy_app_script(
+    TARGET lumeshot
+    OUTPUT_SCRIPT deploy_script
+    NO_TRANSLATIONS
+)
+install(SCRIPT ${deploy_script})
+
 # 离线复现工具：重放 LUMESHOT_SCROLL_DEBUG 导出的帧序列，用于定位拼接问题
 add_executable(lumeshot-replay
     tools/scrollreplay.cpp
@@ -117,3 +149,38 @@ if(BUILD_TESTING)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
     add_subdirectory(tests)
 endif()
+
+# ---------- CPack：deb 安装包 ----------
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_NAME "lumeshot")
+set(CPACK_PACKAGE_VENDOR "lumeshot")
+set(CPACK_PACKAGE_CONTACT "Louis <louis@localhost>")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "X11 screenshot tool with scroll capture and pinning")
+set(CPACK_PACKAGE_DESCRIPTION
+    "LumeShot captures screen regions, the full desktop and active windows, stitches scrolling pages into one long image, and pins screenshots on top of the desktop. It stays in the system tray and is triggered by a configurable global hotkey.")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/lumeshot")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_COMPRESSION_TYPE "xz")
+# Qt 与 ICU 已随包内置，Qt 库的系统依赖由下面手工声明
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libc6 (>= 2.34), libstdc++6, libgcc-s1, \
+libegl1, libgl1, libglx0, libopengl0, \
+libx11-6, libx11-xcb1, libxext6, libxi6, \
+libxcb1, libxcb-cursor0, libxcb-glx0, libxcb-icccm4, libxcb-image0, \
+libxcb-keysyms1, libxcb-randr0, libxcb-render0, libxcb-render-util0, \
+libxcb-shape0, libxcb-shm0, libxcb-sync1, libxcb-xfixes0, libxcb-xkb1, \
+libxkbcommon0, libxkbcommon-x11-0")
+
+execute_process(COMMAND dpkg --print-architecture
+                OUTPUT_VARIABLE LUMESHOT_DEB_ARCH
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(LUMESHOT_DEB_ARCH)
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "${LUMESHOT_DEB_ARCH}")
+endif()
+
+include(CPack)
+
