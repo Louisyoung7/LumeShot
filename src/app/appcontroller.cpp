@@ -42,8 +42,7 @@ bool AppController::start()
             });
 
     m_tray = new TrayController(this);
-    connect(m_tray, &TrayController::regionRequested, this, &AppController::captureRegion);
-    connect(m_tray, &TrayController::fullScreenRequested, this, &AppController::captureFullScreen);
+    connect(m_tray, &TrayController::regionRequested, this, &AppController::captureRegion);    connect(m_tray, &TrayController::fullScreenRequested, this, &AppController::captureFullScreen);
     connect(m_tray, &TrayController::activeWindowRequested, this,
             &AppController::captureActiveWindow);
     connect(m_tray, &TrayController::openFolderRequested, this, [this] {
@@ -52,6 +51,14 @@ bool AppController::start()
         QDesktopServices::openUrl(QUrl::fromLocalFile(directory));
     });
     connect(m_tray, &TrayController::settingsRequested, this, &AppController::openSettings);
+
+    // 侧边栏被移出屏幕、键盘焦点丢失时，仍可从托盘菜单结束长截图
+    connect(m_tray, &TrayController::longCaptureFinishRequested, m_longCapture,
+            &LongCaptureSession::finish);
+    connect(m_tray, &TrayController::longCaptureCancelRequested, m_longCapture,
+            &LongCaptureSession::cancel);
+    connect(m_longCapture, &LongCaptureSession::captureEnded, this,
+            [this] { m_tray->setLongCaptureActive(false); });
 
     const bool trayAvailable = m_tray->start();
     updateHotkeyLabel();
@@ -148,6 +155,7 @@ void AppController::startLongCapture(const QRect& region)
     if (!m_longCapture || m_longCapture->isActive())
         return;
     m_longCapture->start(region);
+    m_tray->setLongCaptureActive(true);
 }
 
 void AppController::openSettings()

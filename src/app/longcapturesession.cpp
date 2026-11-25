@@ -10,21 +10,48 @@
 #include <QGuiApplication>
 #include <QPixmap>
 #include <QScreen>
+#include <QTimer>
 
 namespace {
-// 尽量把侧边栏放在选区右侧，放不下就翻到左侧
-QPoint placeSidebarOutside(const QRect& region, const QSize& size)
+constexpr int kSidebarGap = 12;
+constexpr int kSidebarHintMs = 500; // 外侧放不下时先短暂提示，再把侧边栏移出屏幕
+
+// 尽量把侧边栏放在选区外侧，依次尝试右、左、下、上。
+// 四面都放不下（选区几乎占满桌面）时返回 false。
+bool placeSidebarOutside(const QRect& region, const QSize& size, QPoint* position)
 {
     const QRect desktop = ScreenCapture::virtualGeometry();
 
-    int x = region.right() + 12;
-    if (x + size.width() > desktop.right() + 1)
-        x = region.left() - size.width() - 12;
-    x = qBound(desktop.left(), x, desktop.right() - size.width() + 1);
+    const int centeredY = qBound(desktop.top(), region.center().y() - size.height() / 2,
+                                 desktop.bottom() - size.height() + 1);
+    const int centeredX = qBound(desktop.left(), region.center().x() - size.width() / 2,
+                                 desktop.right() - size.width() + 1);
 
-    int y = region.center().y() - size.height() / 2;
-    y = qBound(desktop.top(), y, desktop.bottom() - size.height() + 1);
-    return QPoint(x, y);
+    const int right = region.right() + kSidebarGap;
+    if (right + size.width() <= desktop.right() + 1) {
+        *position = QPoint(right, centeredY);
+        return true;
+    }
+
+    const int left = region.left() - size.width() - kSidebarGap;
+    if (left >= desktop.left()) {
+        *position = QPoint(left, centeredY);
+        return true;
+    }
+
+    const int bottom = region.bottom() + kSidebarGap;
+    if (bottom + size.height() <= desktop.bottom() + 1) {
+        *position = QPoint(centeredX, bottom);
+        return true;
+    }
+
+    const int top = region.top() - size.height() - kSidebarGap;
+    if (top >= desktop.top()) {
+        *position = QPoint(centeredX, top);
+        return true;
+    }
+
+    return false;
 }
 } // namespace
 
@@ -53,17 +80,12 @@ void LongCaptureSession::start(const QRect& region)
                 if (m_sidebar)
                     m_sidebar->setCapture(thumbnail, logicalHeight);
             });
-    connect(m_sidebar, &LongCaptureSidebar::finishRequested, this, [this] {
-        if (m_scroll)
-            m_scroll->finish();
-    });
-    connect(m_sidebar, &LongCaptureSidebar::cancelRequested, this, [this] {
-        if (m_scroll)
-            m_scroll->cancel();
-    });
+    connect(m_sidebar, &LongCaptureSidebar::finishRequested, this, &LongCaptureSession::finish);
+    connect(m_sidebar, &LongCaptureSidebar::cancelRequested, this, &LongCaptureSession::cancel);
     connect(m_scroll, &ScrollCapture::finished, this, [this](const QImage& image) {
         closeWindows();
         cleanup();
+        emit captureEnded();
         if (image.isNull()) {
             m_active = false;
             return;
@@ -75,16 +97,50 @@ void LongCaptureSession::start(const QRect& region)
         m_active = false;
         closeWindows();
         cleanup();
+        emit captureEnded();
         emit canceled();
     });
 
-    m_sidebar->move(placeSidebarOutside(region, m_sidebar->size()));
+    // 侧边栏的尺寸由布局决定，show 之前必须先算出来，否则会按错误尺寸定位
+    m_sidebar->adjustSize();
+    QPoint sidebarPosition;
+    const bool sidebarOutside = placeSidebarOutside(region, m_sidebar->size(), &sidebarPosition);
+    if (sidebarOutside) {
+        m_sidebar->move(sidebarPosition);
+    } else {
+        // 选区几乎占满桌面，外侧放不下侧边栏。先在角落短暂提示，
+        // 随后把窗口移出屏幕：不遮挡截图内容，但仍保留键盘焦点，
+        // 用 Enter 完成、Esc 取消。
+        m_sidebar->move(region.topLeft() + QPoint(kSidebarGap, kSidebarGap));
+        QTimer::singleShot(kSidebarHintMs, this, [this] {
+            if (!m_sidebar)
+                return;
+            const QRect desktop = ScreenCapture::virtualGeometry();
+            m_sidebar->move(desktop.right() + 40, m_sidebar->y());
+        });
+    }
     m_sidebar->show();
     m_sidebar->raise();
     m_sidebar->activateWindow();
     m_sidebar->setFocus();
 
-    m_scroll->start(region);
+    // 提示期间不抓帧，避免把侧边栏截进首屏
+    const int firstDelayMs = sidebarOutside
+        ? ScrollCapture::kFirstDelayMs
+        : kSidebarHintMs + ScrollCapture::kFirstDelayMs;
+    m_scroll->start(region, firstDelayMs);
+}
+
+void LongCaptureSession::finish()
+{
+    if (m_scroll)
+        m_scroll->finish();
+}
+
+void LongCaptureSession::cancel()
+{
+    if (m_scroll)
+        m_scroll->cancel();
 }
 
 // 结束后先收起边框和侧边栏，避免挡住预览

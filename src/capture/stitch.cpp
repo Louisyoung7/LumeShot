@@ -10,15 +10,19 @@ namespace {
 constexpr int kDescriptorWidth = 96;        // 描述子宽度，控制成本
 constexpr int kColumnCount = 3;             // 横向分栏数
 constexpr int kMinOverlapRows = 16;         // 最少重叠行数
-constexpr double kSameFrameDifference = 1.5; // 低于该值视为画面没动
+constexpr int kSameRowDifference = 4;       // 单行视为一致的误差上限
+constexpr int kSameRowPercent = 75;         // 一致行占比达到该值视为没滚动
 constexpr int kContrastThreshold = 20;      // 区分平坦行
 constexpr int kCoarseSamples = 32;          // 粗筛每栏采样行数
 constexpr int kFineSamples = 128;           // 精验每栏采样行数
 constexpr int kPixelTolerance = 6;          // 单像素容差，抗锯齿
 constexpr double kColumnValidError = 6.0;   // 有效列的最大误差
-constexpr double kAmbiguityMargin = 0.5;    // 近似并列的误差差
-constexpr int kTopCandidatesPerColumn = 3;  // 每栏保留的粗筛候选数
+constexpr double kColumnAgreementMargin = 0.5; // 各栏结论一致的误差容差
+constexpr double kTieMargin = 1e-3;         // 判定为并列的误差差
+constexpr int kTexturePercent = 25;         // 有效纹理行占比门槛
+constexpr int kTopCandidatesPerColumn = 5;  // 每栏保留的粗筛候选数
 constexpr int kCandidateExpand = 2;         // 候选向两侧扩展的行数
+constexpr double kContentRowDifference = 4.0; // 与首行差异超过该值视为有内容
 
 struct RowFeature {
     float mean = 0.0f;     // 行内均值
@@ -129,6 +133,15 @@ int textureWeight(const Profile& profile, int column)
     return first < 0 ? 0 : last - first + 1;
 }
 
+// 纹理证据是否足够。门槛放宽到 25%，让窄栏或偏侧的内容也能参与匹配。
+bool hasTexture(const Profile& profile)
+{
+    int total = 0;
+    for (int c = 0; c < kColumnCount; ++c)
+        total += textureWeight(profile, c);
+    return total * 100 > profile.height * kColumnCount * kTexturePercent;
+}
+
 double median(std::vector<float> values)
 {
     if (values.empty())
@@ -159,7 +172,8 @@ double trimmedMean(std::vector<double> errors)
 }
 
 struct ColumnScore {
-    double error = 1e9;
+    double error = 1e9;       // 容差后的误差，用于判定列是否有效
+    double strictError = 1e9; // 不容差的误差，用于区分相邻偏移
     int weight = 0;
 };
 
@@ -233,6 +247,7 @@ ColumnScore scoreFine(const Profile& tail, const Profile& frame, int overlap, in
     const double count = x1 - x0;
 
     std::vector<double> errors;
+    std::vector<double> strictErrors;
     int firstRow = -1;
     int lastRow = -1;
 
@@ -253,14 +268,17 @@ ColumnScore scoreFine(const Profile& tail, const Profile& frame, int overlap, in
         const double frameBase = frameSum / count;
 
         double error = 0.0;
+        double strictError = 0.0;
         for (int x = x0; x < x1; ++x) {
             const double difference =
                 std::fabs((tail.pixel(tailRow, x) - tailBase)
                           - (frame.pixel(y, x) - frameBase));
             error += std::max(0.0, difference - kPixelTolerance);
+            strictError += difference;
         }
 
         errors.push_back(error / count);
+        strictErrors.push_back(strictError / count);
         if (firstRow < 0)
             firstRow = tailRow;
         lastRow = tailRow;
@@ -270,42 +288,43 @@ ColumnScore scoreFine(const Profile& tail, const Profile& frame, int overlap, in
         return score;
 
     score.error = trimmedMean(std::move(errors));
+    score.strictError = trimmedMean(std::move(strictErrors));
     score.weight = lastRow - firstRow + 1;
     return score;
 }
 
-// 全帧去均值误差，用来判断画面有没有滚动
-double sameFrameError(const Profile& tail, const Profile& frame)
+// 判定两帧是否基本一致：逐行比较，允许小面积动画
+bool mostlySame(const Profile& a, const Profile& b)
 {
-    double total = 0.0;
-    int samples = 0;
-    for (int c = 0; c < kColumnCount; ++c) {
-        double tailMeanBase = 0.0;
-        double tailWeightedBase = 0.0;
-        double frameMeanBase = 0.0;
-        double frameWeightedBase = 0.0;
-        for (int y = 0; y < tail.height; ++y) {
-            tailMeanBase += tail.feature(y, c).mean;
-            tailWeightedBase += tail.feature(y, c).weighted;
-            frameMeanBase += frame.feature(y, c).mean;
-            frameWeightedBase += frame.feature(y, c).weighted;
-        }
-        tailMeanBase /= tail.height;
-        tailWeightedBase /= tail.height;
-        frameMeanBase /= frame.height;
-        frameWeightedBase /= frame.height;
+    if (a.height != b.height || a.height == 0)
+        return false;
 
-        for (int y = 0; y < tail.height; ++y) {
-            const RowFeature& a = tail.feature(y, c);
-            const RowFeature& b = frame.feature(y, c);
-            total += 0.5
-                * (std::fabs((a.mean - tailMeanBase) - (b.mean - frameMeanBase))
-                   + std::fabs((a.weighted - tailWeightedBase)
-                               - (b.weighted - frameWeightedBase)));
-            ++samples;
+    double meanBase[kColumnCount] = {};
+    double weightedBase[kColumnCount] = {};
+    for (int c = 0; c < kColumnCount; ++c) {
+        for (int y = 0; y < a.height; ++y) {
+            meanBase[c] += a.feature(y, c).mean - b.feature(y, c).mean;
+            weightedBase[c] += a.feature(y, c).weighted - b.feature(y, c).weighted;
         }
+        meanBase[c] /= a.height;
+        weightedBase[c] /= a.height;
     }
-    return samples > 0 ? total / samples : 0.0;
+
+    int sameRows = 0;
+    for (int y = 0; y < a.height; ++y) {
+        double rowError = 0.0;
+        for (int c = 0; c < kColumnCount; ++c) {
+            const RowFeature& fa = a.feature(y, c);
+            const RowFeature& fb = b.feature(y, c);
+            rowError += std::fabs((fa.mean - fb.mean) - meanBase[c]);
+            rowError += std::fabs((fa.weighted - fb.weighted) - weightedBase[c]);
+        }
+        rowError /= kColumnCount * 2;
+        if (rowError < kSameRowDifference)
+            ++sameRows;
+    }
+
+    return sameRows * 100 >= a.height * kSameRowPercent;
 }
 
 struct CoarseResult {
@@ -315,7 +334,7 @@ struct CoarseResult {
 
 struct CandidateScore {
     int overlap = 0;
-    double error = 1e9;
+    double strictError = 1e9; // 不容差误差，用于区分相邻偏移
 };
 
 } // namespace
@@ -336,13 +355,10 @@ int detectOverlap(const QImage& tail, const QImage& frame)
     const Profile frameProfile = makeProfile(frame);
 
     // 低纹理画面没有足够证据，直接丢弃
-    int textureTotal = 0;
-    for (int c = 0; c < kColumnCount; ++c)
-        textureTotal += textureWeight(tailProfile, c);
-    if (textureTotal * 2 <= height * kColumnCount)
+    if (!hasTexture(tailProfile))
         return 0;
 
-    if (sameFrameError(tailProfile, frameProfile) < kSameFrameDifference)
+    if (mostlySame(tailProfile, frameProfile))
         return -1;
 
     const int minOverlap = std::max(kMinOverlapRows, height / 20);
@@ -422,8 +438,8 @@ int detectOverlap(const QImage& tail, const QImage& frame)
     for (int c = 0; c < kColumnCount; ++c)
         columnValid[c] = minima[c] <= kColumnValidError;
 
-    // 候选仲裁：列间一致才通过，按列权重加权求误差
-    double bestError = 1e9;
+    // 候选仲裁：列间一致才通过，再用不容差误差区分相邻偏移
+    double bestScore = 1e9;
     int bestOverlap = 0;
     std::vector<CandidateScore> consistent;
     consistent.reserve(fine.size());
@@ -431,25 +447,25 @@ int detectOverlap(const QImage& tail, const QImage& frame)
     for (const FineCandidate& candidate : fine) {
         const int totalWeight = candidate.overlap * kColumnCount;
         double agreeingWeight = 0.0;
-        double weightedError = 0.0;
+        double weightedStrict = 0.0;
 
         for (int c = 0; c < kColumnCount; ++c) {
             const ColumnScore& column = candidate.columns[c];
             if (!columnValid[c] || column.weight == 0)
                 continue;
-            if (column.error > minima[c] + kAmbiguityMargin)
+            if (column.error > minima[c] + kColumnAgreementMargin)
                 continue;
             agreeingWeight += column.weight;
-            weightedError += column.weight * column.error;
+            weightedStrict += column.weight * column.strictError;
         }
 
-        if (agreeingWeight * 2 <= totalWeight)
+        if (agreeingWeight * 100 <= totalWeight * kTexturePercent)
             continue;
 
-        const double error = weightedError / agreeingWeight;
-        consistent.push_back({candidate.overlap, error});
-        if (error < bestError) {
-            bestError = error;
+        const double strictScore = weightedStrict / agreeingWeight;
+        consistent.push_back({candidate.overlap, strictScore});
+        if (strictScore < bestScore) {
+            bestScore = strictScore;
             bestOverlap = candidate.overlap;
         }
     }
@@ -457,14 +473,56 @@ int detectOverlap(const QImage& tail, const QImage& frame)
     if (bestOverlap == 0)
         return 0;
 
-    // 误差近似并列时取重叠最大的候选
+    // 严格误差真正并列时才取重叠最大的候选，避免在真实页面上误选更大的重叠
     int chosen = bestOverlap;
     for (const CandidateScore& score : consistent) {
-        if (score.error <= bestError + kAmbiguityMargin && score.overlap > chosen)
+        if (score.strictError <= bestScore + kTieMargin && score.overlap > chosen)
             chosen = score.overlap;
     }
 
     return chosen;
+}
+
+bool hasReliableTexture(const QImage& frame)
+{
+    if (frame.isNull() || frame.width() < 3 || frame.height() < kMinOverlapRows + 1)
+        return false;
+
+    return hasTexture(makeProfile(frame));
+}
+
+bool framesMostlySame(const QImage& previous, const QImage& current)
+{
+    if (previous.isNull() || current.isNull() || previous.size() != current.size())
+        return false;
+
+    return mostlySame(makeProfile(previous), makeProfile(current));
+}
+
+bool hasVisibleContent(const QImage& strip)
+{
+    if (strip.isNull() || strip.height() == 0)
+        return false;
+
+    const QImage gray = strip.convertToFormat(QImage::Format_Grayscale8)
+                            .scaled(64, strip.height(), Qt::IgnoreAspectRatio,
+                                    Qt::FastTransformation);
+    const int width = gray.width();
+    if (width == 0)
+        return false;
+
+    // 以首行为基准逐行比较：文字、图片等内容行的灰度分布必然不同，
+    // 而回弹露出的背景、纯色条每行几乎一致。
+    const uchar* first = gray.constScanLine(0);
+    for (int y = 1; y < gray.height(); ++y) {
+        const uchar* line = gray.constScanLine(y);
+        double difference = 0.0;
+        for (int x = 0; x < width; ++x)
+            difference += std::fabs(double(line[x]) - double(first[x]));
+        if (difference / width >= kContentRowDifference)
+            return true;
+    }
+    return false;
 }
 
 } // namespace stitch

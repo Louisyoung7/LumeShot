@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QRect>
 
+class QFile;
 class QTimer;
 
 class ScrollCapture : public QObject {
@@ -15,7 +16,10 @@ class ScrollCapture : public QObject {
 public:
     explicit ScrollCapture(QObject* parent = nullptr);
 
-    void start(const QRect& region);
+    // 首帧延迟，等框选遮罩和边框窗口消失，避免把边框截进第一帧
+    static constexpr int kFirstDelayMs = 160;
+
+    void start(const QRect& region, int firstDelayMs = kFirstDelayMs);
     void finish(); // 停止抓取并输出拼接结果
     void cancel();
 
@@ -32,9 +36,20 @@ private:
     void captureFrame();
     void appendThumbnail(const QImage& piece);
 
+    // 调试导出：设置 LUMESHOT_SCROLL_DEBUG 后，把每帧画面和判定结果写入磁盘，
+    // 便于用 lumeshot-replay 离线复现，不需要反复手动滚动页面。
+    void openDebugDump();
+    void dumpFrame(const QImage& frame);
+    void writeDebugLine(const QString& line);
+    void closeDebugDump(const QImage& result, const QString& status);
+
     QTimer* m_timer = nullptr;
     QRect m_region;
     ScrollSession m_session;
     QImage m_thumbnail; // 供侧边栏预览的缩略图，宽度固定
     bool m_running = false;
+
+    QString m_debugDir;    // 为空表示没有开启导出
+    QFile* m_debugLog = nullptr;
+    int m_debugIndex = 0;  // 已导出的帧序号
 };

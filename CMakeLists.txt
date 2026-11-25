@@ -102,6 +102,15 @@ target_link_libraries(lumeshot PRIVATE
     ${X11_Xi_LIB}
 )
 
+# 离线复现工具：重放 LUMESHOT_SCROLL_DEBUG 导出的帧序列，用于定位拼接问题
+add_executable(lumeshot-replay
+    tools/scrollreplay.cpp
+    src/capture/scrollsession.cpp
+    src/capture/stitch.cpp
+)
+target_include_directories(lumeshot-replay PRIVATE src)
+target_link_libraries(lumeshot-replay PRIVATE Qt6::Gui)
+
 # 单元测试：ctest --test-dir build --output-on-failure
 include(CTest)
 if(BUILD_TESTING)

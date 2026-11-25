@@ -23,6 +23,10 @@ public:
 
     void updateRegionLabel(const QKeySequence& hotkey);
 
+    // 长截图进行中时，在托盘菜单里显示完成/取消入口。
+    // 侧边栏被移出屏幕、键盘焦点丢失时，这是唯一可用的结束方式。
+    void setLongCaptureActive(bool active);
+
     void notify(const QString& title, const QString& message) const;
 
 signals:
@@ -31,6 +35,8 @@ signals:
     void activeWindowRequested();
     void openFolderRequested();
     void settingsRequested();
+    void longCaptureFinishRequested();
+    void longCaptureCancelRequested();
 
 private:
     void showFallbackWindow();
@@ -38,4 +44,7 @@ private:
     QSystemTrayIcon* m_tray = nullptr;
     QWidget* m_fallbackWindow = nullptr;
     QAction* m_regionAction = nullptr;
+    QAction* m_longCaptureSeparator = nullptr;
+    QAction* m_longCaptureFinishAction = nullptr;
+    QAction* m_longCaptureCancelAction = nullptr;
 };

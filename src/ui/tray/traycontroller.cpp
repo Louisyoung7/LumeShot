@@ -44,6 +44,10 @@ bool TrayController::start()
 
         auto* menu = new QMenu();
         m_regionAction = menu->addAction(QString());
+        m_longCaptureSeparator = menu->addSeparator();
+        m_longCaptureFinishAction = menu->addAction(QStringLiteral("完成长截图"));
+        m_longCaptureCancelAction = menu->addAction(QStringLiteral("取消长截图"));
+        menu->addSeparator();
         QAction* fullScreenAction = menu->addAction(QStringLiteral("全屏截图"));
         QAction* windowAction = menu->addAction(QStringLiteral("当前窗口截图"));
         menu->addSeparator();
@@ -53,6 +57,10 @@ bool TrayController::start()
         QAction* quitAction = menu->addAction(QStringLiteral("退出"));
 
         connect(m_regionAction, &QAction::triggered, this, &TrayController::regionRequested);
+        connect(m_longCaptureFinishAction, &QAction::triggered, this,
+                &TrayController::longCaptureFinishRequested);
+        connect(m_longCaptureCancelAction, &QAction::triggered, this,
+                &TrayController::longCaptureCancelRequested);
         connect(fullScreenAction, &QAction::triggered, this,
                 &TrayController::fullScreenRequested);
         connect(windowAction, &QAction::triggered, this,
@@ -64,6 +72,7 @@ bool TrayController::start()
 
         m_tray->setContextMenu(menu);
         m_tray->show();
+        setLongCaptureActive(false);
     } else {
         showFallbackWindow();
     }
@@ -77,6 +86,16 @@ void TrayController::updateRegionLabel(const QKeySequence& hotkey)
         return;
     m_regionAction->setText(QStringLiteral("区域截图（%1）")
                                 .arg(hotkey.toString(QKeySequence::NativeText)));
+}
+
+void TrayController::setLongCaptureActive(bool active)
+{
+    if (!m_longCaptureFinishAction)
+        return;
+
+    m_longCaptureSeparator->setVisible(active);
+    m_longCaptureFinishAction->setVisible(active);
+    m_longCaptureCancelAction->setVisible(active);
 }
 
 void TrayController::notify(const QString& title, const QString& message) const

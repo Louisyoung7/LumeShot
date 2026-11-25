@@ -87,6 +87,28 @@ inline QImage repeatedFrame(int offset, int height = kFrameHeight)
     return image;
 }
 
+// 模拟真实文章：白底、窄栏居中文字，每行内容不同
+inline QImage articleFrame(int offset, int height = 800, int width = 800)
+{
+    QImage image(width, height, QImage::Format_RGB32);
+    const int left = width / 2 - 60;
+    const int right = width / 2 + 60;
+
+    for (int y = 0; y < height; ++y) {
+        const int row = offset + y;
+        const int line = row / 28;
+        const bool textRow = row % 28 < 16;
+        QRgb* pixels = reinterpret_cast<QRgb*>(image.scanLine(y));
+        for (int x = 0; x < width; ++x) {
+            int value = 245 - (row % 5);
+            if (textRow && x >= left && x < right && (x + line * 37) % 11 < 6)
+                value = 40 + (row % 17);
+            pixels[x] = qRgb(value, value, value);
+        }
+    }
+    return image;
+}
+
 inline QImage withBrightness(const QImage& source, int delta)
 {
     QImage result = source;
@@ -142,6 +164,20 @@ inline QImage withAnimation(const QImage& source, int phase, int startRow = 100,
             const int v = ((x / 6 + y + phase * 13) % 2) ? 30 : 230;
             line[x] = qRgb(v, 255 - v, (x * 3 + phase * 7) % 256);
         }
+    }
+    return result;
+}
+
+// 底部若干行填充为背景色，模拟页面到底后回弹露出的空白
+inline QImage withBlankBottom(const QImage& source, int rows,
+                              QRgb color = qRgb(252, 252, 252))
+{
+    QImage result = source;
+    const int start = qMax(0, result.height() - rows);
+    for (int y = start; y < result.height(); ++y) {
+        QRgb* line = reinterpret_cast<QRgb*>(result.scanLine(y));
+        for (int x = 0; x < result.width(); ++x)
+            line[x] = color;
     }
     return result;
 }

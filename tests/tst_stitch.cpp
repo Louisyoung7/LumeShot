@@ -16,6 +16,7 @@ private slots:
     void detectsOnePixelScroll();
     void detectsFastScroll();
     void identicalFrameReportsNoScroll();
+    void staticFrameWithAnimationReportsNoScroll();
     void unrelatedFrameReportsNoMatch();
     void overlapBelowMinimumIsRejected();
     void toleratesBrightnessShift();
@@ -24,10 +25,12 @@ private slots:
     void toleratesAnimatedStrip();
     void ignoresScrollbar();
     void rejectsLowTexture();
+    void detectsOverlapOnNarrowArticle();
     void repetitivePatternPrefersLargestOverlap();
     void rejectsHorizontalJitter();
     void rejectsReverseScroll();
     void rejectsSizeMismatch();
+    void detectsBlankStrip();
     void keepsPerformanceBudget();
 };
 
@@ -55,6 +58,15 @@ void TestStitch::identicalFrameReportsNoScroll()
 {
     const QImage frame = pageFrame(0);
     QCOMPARE(stitch::detectOverlap(frame, frame), -1);
+}
+
+void TestStitch::staticFrameWithAnimationReportsNoScroll()
+{
+    // 没有滚动，只有一条动画条在变化，应判为没有新内容
+    const QImage tail = withAnimation(pageFrame(0), 0);
+    const QImage frame = withAnimation(pageFrame(0), 1);
+
+    QCOMPARE(stitch::detectOverlap(tail, frame), -1);
 }
 
 void TestStitch::unrelatedFrameReportsNoMatch()
@@ -111,6 +123,12 @@ void TestStitch::rejectsLowTexture()
     QCOMPARE(stitch::detectOverlap(lowTextureFrame(0), lowTextureFrame(40)), 0);
 }
 
+void TestStitch::detectsOverlapOnNarrowArticle()
+{
+    // 窄栏居中排版，只有中间一栏有纹理，也应能匹配
+    QCOMPARE(stitch::detectOverlap(articleFrame(0), articleFrame(120)), 680);
+}
+
 void TestStitch::repetitivePatternPrefersLargestOverlap()
 {
     QCOMPARE(stitch::detectOverlap(repeatedFrame(0), repeatedFrame(40)), 260);
@@ -132,6 +150,21 @@ void TestStitch::rejectsSizeMismatch()
 {
     QCOMPARE(stitch::detectOverlap(pageFrame(0), pageFrame(40, kFrameHeight, kPageWidth - 4)),
              0);
+}
+
+void TestStitch::detectsBlankStrip()
+{
+    const QImage page = pageFrame(0);
+
+    // 背景条：整条纵向一致，没有实际内容
+    const QImage blank = withBlankBottom(page, 60).copy(0, 240, kPageWidth, 60);
+    QVERIFY(!stitch::hasVisibleContent(blank));
+
+    // 文字条：行与行内容不同
+    const QImage text = page.copy(0, 120, kPageWidth, 60);
+    QVERIFY(stitch::hasVisibleContent(text));
+
+    QVERIFY(!stitch::hasVisibleContent(QImage()));
 }
 
 void TestStitch::keepsPerformanceBudget()

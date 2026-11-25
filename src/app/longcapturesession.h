@@ -20,10 +20,16 @@ public:
     void start(const QRect& region);
     bool isActive() const { return m_active; }
 
+    // 外部入口：侧边栏不可用时（例如被移出屏幕）由托盘菜单触发
+    void finish();
+    void cancel();
+
 signals:
     // 预览确认：image 为拼接结果，region 为最初框选的区域
     void finished(const QImage& image, const QRect& region);
     void canceled();
+    // 抓取阶段结束（预览尚未处理），用于收尾托盘里的长截图菜单
+    void captureEnded();
 
 private:
     void closeWindows();
