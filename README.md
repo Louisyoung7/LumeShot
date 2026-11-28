@@ -239,6 +239,7 @@ src/
 ├── app/                        应用编排：主控制器、长截图会话
 ├── capture/                    屏幕抓取与长截图拼接算法
 ├── config/                     配置读写（QSettings）
+├── log/                        运行日志：Qt 消息写入文件
 ├── output/                     截图输出：剪贴板与 PNG 保存
 ├── platform/                   X11 全局热键、XDG 开机自启
 ├── update/                     检查更新、下载与安装
@@ -274,3 +275,19 @@ tests/                          单元测试，不依赖图形环境
 ```text
 ~/.config/LumeShot/LumeShot.conf
 ```
+
+## 日志文件
+
+运行时的 info / warning / error 消息会写入用户数据目录，默认路径：
+
+```text
+~/.local/share/LumeShot/logs/lumeshot.log
+```
+
+日志超过 1 MiB 时轮转为 `lumeshot.log.1`。需要换个位置时设置环境变量：
+
+```bash
+LUMESHOT_LOG_FILE=/tmp/lumeshot.log ./build/lumeshot
+```
+
+设为 `/dev/null` 可只保留控制台输出。长截图的逐帧导出仍由 `LUMESHOT_SCROLL_DEBUG` 控制，与这里的主日志互不覆盖。

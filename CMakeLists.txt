@@ -32,6 +32,7 @@ find_package(X11 REQUIRED)
 #   app      应用编排：主控制器、长截图会话
 #   capture  抓屏与长截图拼接
 #   config   配置读写
+#   log      运行日志：捕获 Qt 消息并写入用户数据目录
 #   output   截图输出：剪贴板与 PNG 保存
 #   platform 平台适配：X11 全局热键、XDG 开机自启
 #   update   检查更新、下载与安装
@@ -50,6 +51,10 @@ set(LUMESHOT_CAPTURE_SOURCES
 
 set(LUMESHOT_CONFIG_SOURCES
     src/config/appsettings.cpp
+)
+
+set(LUMESHOT_LOG_SOURCES
+    src/log/filelogger.cpp
 )
 
 set(LUMESHOT_OUTPUT_SOURCES
@@ -84,6 +89,7 @@ qt_add_executable(lumeshot
     ${LUMESHOT_APP_SOURCES}
     ${LUMESHOT_CAPTURE_SOURCES}
     ${LUMESHOT_CONFIG_SOURCES}
+    ${LUMESHOT_LOG_SOURCES}
     ${LUMESHOT_OUTPUT_SOURCES}
     ${LUMESHOT_PLATFORM_SOURCES}
     ${LUMESHOT_UPDATE_SOURCES}

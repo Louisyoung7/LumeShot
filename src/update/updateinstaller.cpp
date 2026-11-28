@@ -1,6 +1,7 @@
 #include "update/updateinstaller.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -48,11 +49,13 @@ void UpdateInstaller::installFromUrl(const QString& url)
 
     m_file = new QFile(m_targetPath, this);
     if (!m_file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "Cannot open update package for writing:" << m_targetPath;
         emit failed(QStringLiteral("无法写入临时文件：\n%1").arg(m_targetPath));
         cleanupDownload();
         return;
     }
 
+    qInfo() << "Downloading update:" << url;
     QNetworkRequest request{source};
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       QStringLiteral("LumeShot/%1")
@@ -106,6 +109,7 @@ void UpdateInstaller::handleDownloadFinished()
     }
 
     if (error != QNetworkReply::NoError) {
+        qWarning() << "Update package download failed:" << errorText;
         cleanupDownload();
         removeDownloadedFile();
         emit failed(QStringLiteral("下载安装包失败：\n%1").arg(errorText));
@@ -114,6 +118,7 @@ void UpdateInstaller::handleDownloadFinished()
 
     const bool writeError = m_writeFailed || (m_file && m_file->error() != QFileDevice::NoError);
     if (writeError || !m_file || m_file->size() == 0) {
+        qWarning() << "Update package write failed or empty:" << m_targetPath;
         cleanupDownload();
         removeDownloadedFile();
         emit failed(writeError ? QStringLiteral("写入安装包失败，请检查临时目录空间。")
@@ -121,6 +126,7 @@ void UpdateInstaller::handleDownloadFinished()
         return;
     }
 
+    qInfo() << "Update package downloaded:" << m_targetPath;
     startInstall();
 }
 
@@ -128,6 +134,7 @@ void UpdateInstaller::startInstall()
 {
     const QString pkexec = QStandardPaths::findExecutable(QStringLiteral("pkexec"));
     if (pkexec.isEmpty()) {
+        qWarning() << "pkexec not found; cannot install update:" << m_targetPath;
         cleanupDownload();
         emit failed(QStringLiteral("未找到 pkexec，无法弹出授权窗口。\n"
                                    "请安装 polkit，或手动安装下载好的包：\n%1")
@@ -135,6 +142,7 @@ void UpdateInstaller::startInstall()
         return;
     }
 
+    qInfo() << "Installing update package:" << m_targetPath;
     emit installing();
 
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
@@ -155,6 +163,7 @@ void UpdateInstaller::startInstall()
         if (error != QProcess::FailedToStart || !m_process)
             return;
         const QString message = QStringLiteral("无法启动安装程序：\n%1").arg(m_process->errorString());
+        qWarning() << "Cannot start update installer:" << m_process->errorString();
         m_process->deleteLater();
         m_process = nullptr;
         cleanupDownload();
@@ -173,6 +182,8 @@ void UpdateInstaller::startInstall()
                     QString detail = QString::fromLocal8Bit(output).trimmed();
                     if (detail.isEmpty() && (exitCode == 126 || exitCode == 127))
                         detail = QStringLiteral("授权被取消或未通过。");
+                    qWarning() << "Update installer failed, exitCode=" << exitCode
+                               << "status=" << int(status) << "detail=" << detail;
                     removeDownloadedFile();
                     emit finished(false, detail.isEmpty()
                                              ? QStringLiteral("安装失败（退出码 %1）。").arg(exitCode)
@@ -180,6 +191,7 @@ void UpdateInstaller::startInstall()
                     return;
                 }
 
+                qInfo() << "Update installed successfully";
                 removeDownloadedFile();
                 emit finished(true, QStringLiteral("新版本已安装，重启 LumeShot 后生效。"));
             });

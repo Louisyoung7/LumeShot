@@ -33,6 +33,7 @@ void ScreenshotOutput::deliver(const QPixmap& capture, const QString& title)
     if (m_settings.autoSave) {
         const QDir directory(m_settings.effectiveSaveDirectory());
         if (!directory.exists() && !directory.mkpath(QStringLiteral("."))) {
+            qWarning() << "Cannot create screenshot directory:" << directory.path();
             results << QStringLiteral("保存失败：无法创建目录 %1").arg(directory.path());
         } else {
             const QString path = directory.filePath(
@@ -43,6 +44,7 @@ void ScreenshotOutput::deliver(const QPixmap& capture, const QString& title)
                 qInfo("Saved screenshot: %s", qUtf8Printable(path));
                 results << QStringLiteral("已保存：%1").arg(path);
             } else {
+                qWarning() << "Cannot save screenshot:" << path;
                 results << QStringLiteral("保存失败：%1").arg(path);
             }
         }

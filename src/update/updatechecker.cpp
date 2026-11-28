@@ -4,6 +4,7 @@
 #include "update/version.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -57,20 +58,24 @@ void UpdateChecker::handleReply(QNetworkReply* reply)
     m_reply = nullptr;
 
     if (error != QNetworkReply::NoError) {
+        qWarning() << "Update check failed, HTTP" << status << ":" << errorText;
         emit failed(status == 404 ? QStringLiteral("上游还没有发布过版本。") : errorText);
         return;
     }
 
     update::ReleaseInfo release;
     if (!update::parseAtomFeed(payload, &release)) {
+        qWarning() << "Update feed parse failed";
         emit failed(QStringLiteral("更新信息解析失败。"));
         return;
     }
 
     if (update::isNewerVersion(release.version, QCoreApplication::applicationVersion())) {
+        qInfo() << "Update available:" << release.version;
         emit updateAvailable(release.version, release.notes, release.releaseUrl,
                              update::debDownloadUrl(release.version));
     } else {
+        qInfo() << "Already up to date:" << release.version;
         emit upToDate(release.version);
     }
 }

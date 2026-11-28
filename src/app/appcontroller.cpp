@@ -70,8 +70,10 @@ bool AppController::start()
 
     qInfo("LumeShot started: tray=%d hotkey=%d", int(trayAvailable), int(hotkeyReady));
 
-    if (!trayAvailable && !hotkeyReady)
+    if (!trayAvailable && !hotkeyReady) {
+        qWarning() << "No tray and no global hotkey; cannot start.";
         return false;
+    }
 
     QTimer::singleShot(500, this, [this, hotkeyReady, hotkeyText] {
         notify(QStringLiteral("LumeShot 已启动"),
@@ -89,6 +91,7 @@ void AppController::captureRegion()
 
     const QPixmap desktop = ScreenCapture::grabDesktop();
     if (desktop.isNull()) {
+        qWarning() << "Cannot read screen content for screenshot";
         notify(QStringLiteral("截图失败"), QStringLiteral("无法读取屏幕内容"));
         return;
     }
@@ -124,6 +127,7 @@ void AppController::captureFullScreen()
 
     const QPixmap desktop = ScreenCapture::grabDesktop();
     if (desktop.isNull()) {
+        qWarning() << "Cannot read screen content for screenshot";
         notify(QStringLiteral("截图失败"), QStringLiteral("无法读取屏幕内容"));
         return;
     }
@@ -137,6 +141,7 @@ void AppController::captureActiveWindow()
 
     QRect windowRect;
     if (!ScreenCapture::activeWindowRect(&windowRect)) {
+        qWarning() << "Cannot find active window for screenshot";
         notify(QStringLiteral("窗口截图失败"), QStringLiteral("未找到活动窗口"));
         return;
     }
@@ -144,6 +149,7 @@ void AppController::captureActiveWindow()
     const QPixmap desktop = ScreenCapture::grabDesktop();
     const QPixmap capture = ScreenCapture::crop(desktop, windowRect);
     if (capture.isNull()) {
+        qWarning() << "Cannot crop active window from screen capture";
         notify(QStringLiteral("窗口截图失败"), QStringLiteral("无法读取窗口内容"));
         return;
     }
@@ -212,6 +218,8 @@ void AppController::openSettings()
     if (dialog.exec() != QDialog::Accepted) {
         // 对话框打开期间组合键可能被其他程序抢占，失败要明确告知，避免静默失去全局热键
         if (!m_hotkey->resume()) {
+            qWarning() << "Cannot re-register global hotkey:"
+                       << m_settings.hotkey.toString(QKeySequence::NativeText);
             notify(QStringLiteral("全局快捷键失效"),
                    QStringLiteral("%1 无法重新注册，可能已被其他程序占用。\n"
                                   "请从托盘打开设置更换快捷键。")
@@ -223,6 +231,8 @@ void AppController::openSettings()
     const AppSettings updated = dialog.settings();
     if (!m_hotkey->grab(updated.hotkey)) {
         // 新快捷键不可用时恢复原来的，避免用户失去全局热键
+        qWarning() << "Cannot register hotkey:"
+                   << updated.hotkey.toString(QKeySequence::NativeText);
         m_hotkey->grab(m_settings.hotkey);
         QMessageBox::warning(
             m_tray->dialogParent(), QStringLiteral("快捷键不可用"),
@@ -236,6 +246,7 @@ void AppController::openSettings()
 
     if (updated.autostart != Autostart::isEnabled()
         && !Autostart::setEnabled(updated.autostart)) {
+        qWarning() << "Cannot write autostart file:" << Autostart::desktopFilePath();
         m_settings.autostart = Autostart::isEnabled();
         m_hotkey->grab(m_settings.hotkey);
         QMessageBox::warning(
@@ -264,10 +275,9 @@ void AppController::updateHotkeyLabel()
 
 void AppController::notify(const QString& title, const QString& message) const
 {
+    qInfo().noquote() << "Notification:" << title << ":" << message;
     if (m_tray)
         m_tray->notify(title, message);
-    else
-        qInfo("%s: %s", qUtf8Printable(title), qUtf8Printable(message));
 }
 
 bool AppController::busy() const
