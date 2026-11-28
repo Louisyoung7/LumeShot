@@ -99,12 +99,10 @@ void AppController::captureRegion()
     m_capturing = true;
     m_overlay = new SelectionOverlay(desktop, ScreenCapture::virtualGeometry());
     connect(m_overlay, &SelectionOverlay::regionSelected, this, [this](const QPixmap& capture) {
-        m_capturing = false;
         m_output->deliver(capture, QStringLiteral("区域截图"));
     });
     connect(m_overlay, &SelectionOverlay::pinRequested, this,
             [this](const QPixmap& capture, const QPoint& position) {
-                m_capturing = false;
                 auto* pin = new PinWindow(capture);
                 pin->move(position);
                 pin->show();
@@ -112,7 +110,7 @@ void AppController::captureRegion()
             });
     connect(m_overlay, &SelectionOverlay::longCaptureRequested, this,
             &AppController::startLongCapture);
-    connect(m_overlay, &SelectionOverlay::canceled, this, [this] { m_capturing = false; });
+    // 遮罩真正销毁后才释放忙碌状态，避免关闭过程中热键重入
     connect(m_overlay, &QObject::destroyed, this, [this] {
         m_capturing = false;
         m_overlay = nullptr;

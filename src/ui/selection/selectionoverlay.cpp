@@ -30,6 +30,9 @@ SelectionOverlay::SelectionOverlay(const QPixmap& desktop, const QRect& virtualG
     // override-redirect 窗口：绕过窗口管理器，避免跨屏遮罩被 GNOME 缩放或挪位
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
                    | Qt::X11BypassWindowManagerHint);
+    // 透明背景避免全屏窗口 map/unmap 时合成器闪一帧黑屏
+    setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_NoSystemBackground);
     setAttribute(Qt::WA_DeleteOnClose);
     setMouseTracking(true);
     setCursor(Qt::CrossCursor);
@@ -43,14 +46,17 @@ void SelectionOverlay::paintEvent(QPaintEvent* event)
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.drawPixmap(0, 0, m_desktop);
     painter.fillRect(rect(), QColor(0, 0, 0, 110));
 
     const QRect selection = m_selection.normalized().intersected(rect());
     if (selection.isEmpty())
         return;
 
-    // 选区恢复成原始亮度
+    // 擦掉选区内的暗化层，再画回进入截图时的快照，保持预览与裁剪结果一致
+    painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+    painter.fillRect(selection, QColor(0, 0, 0, 255));
+    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+
     const qreal scale = m_desktop.devicePixelRatio();
     const QRectF source(selection.x() * scale, selection.y() * scale,
                         selection.width() * scale, selection.height() * scale);

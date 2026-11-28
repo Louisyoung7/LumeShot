@@ -125,6 +125,19 @@ if (!stitch::hasVisibleContent(piece))
 
 相关代码：`LongCaptureSession::start()`、`placeSidebarOutside()`、`TrayController::setLongCaptureActive()`。
 
+### 3.6 区域截图唤出/取消黑屏（已修）
+
+区域截图遮罩原本是覆盖整块虚拟桌面的不透明窗口，桌面快照要在 `paintEvent()` 里才画到窗口上。X11 上窗口映射到首次绘制之间，以及 `close()` 注销全屏 override-redirect 窗口时，合成器还没重绘底层画面，于是唤出和取消各闪一帧黑屏。
+
+修复：
+
+- `SelectionOverlay` 设置 `WA_TranslucentBackground` + `WA_NoSystemBackground`，窗口背景透明；
+- `paintEvent()` 不再整屏绘制 `m_desktop`，只画半透明暗化层；选区先用 `DestinationOut` 擦除暗化层，再局部画回快照，预览与最终裁剪结果仍一致；
+- `m_desktop` 只在进入截图时抓取一次，继续作为 `ScreenCapture::crop()` 的裁剪来源；
+- `AppController` 把 `m_capturing = false` 统一放到遮罩 `destroyed` 信号，避免关闭过程中热键重入。
+
+验证：用全局热键和托盘菜单反复唤出/取消区域截图，观察不到黑帧；确认、钉图、长截图入口的选区预览和产出与修改前一致。
+
 ## 4. 验证
 
 ```bash
