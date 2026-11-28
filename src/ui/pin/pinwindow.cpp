@@ -12,15 +12,34 @@
 namespace {
 constexpr int kBorderWidth = 3;                        // 亮色边框宽度
 constexpr int kEdgeWidth = 1;                          // 边框外侧的深色描边
-constexpr qreal kMinScale = 0.1;                       // 缩小下限
-constexpr qreal kMaxScale = 8.0;                       // 放大上限
+constexpr qreal kMinScale = 0.1;                       // 通常的缩小下限
+constexpr qreal kMaxScale = 8.0;                       // 通常的放大上限
+constexpr double kMaxScaledPixels = 40'000'000.0;      // 长图放大后的 pixmap 像素预算
 const QColor kBorderColor(0x33, 0xaa, 0xff);
+
+// 长截图原图可能高达 20000 物理像素，直接放到 8 倍会申请数 GB 内存。
+// 普通截图维持原有 8 倍上限，只有需要初始适配的长图按像素预算收紧。
+qreal maxScaleFor(const QPixmap& pixmap, bool fitted)
+{
+    if (!fitted)
+        return kMaxScale;
+    const QSizeF base = pixmap.deviceIndependentSize();
+    const qreal ratio = pixmap.devicePixelRatio() > 0.0 ? pixmap.devicePixelRatio() : 1.0;
+    const double pixels = double(base.width() * ratio) * double(base.height() * ratio);
+    if (pixels <= 0.0)
+        return kMaxScale;
+    return qMax(1.0, qMin(kMaxScale, std::sqrt(kMaxScaledPixels / pixels)));
+}
 } // namespace
 
-PinWindow::PinWindow(const QPixmap& pixmap, QWidget* parent)
+PinWindow::PinWindow(const QPixmap& pixmap, qreal initialScale, QWidget* parent)
     : QWidget(parent)
     , m_sourcePixmap(pixmap)
+    , m_minScale(qMin(kMinScale, initialScale > 0.0 ? initialScale : kMinScale))
+    , m_maxScale(maxScaleFor(pixmap, initialScale < 1.0))
+    , m_scale(qBound(m_minScale, initialScale, m_maxScale))
 {
+    m_maxScale = qMax(m_maxScale, m_scale);
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_DeleteOnClose);
     setToolTip(QStringLiteral("拖动可移动，滚轮缩放，双击或右键可关闭钉图"));
@@ -76,7 +95,8 @@ void PinWindow::wheelEvent(QWheelEvent* event)
         return;
     }
 
-    const qreal target = qBound(kMinScale, m_scale * std::pow(1.1, delta / 120.0), kMaxScale);
+    const qreal target =
+        qBound(m_minScale, m_scale * std::pow(1.1, delta / 120.0), m_maxScale);
     if (qFuzzyCompare(target, m_scale)) {
         event->accept();
         return;

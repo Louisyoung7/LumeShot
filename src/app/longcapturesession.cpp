@@ -204,19 +204,17 @@ void LongCaptureSession::showPreview(const QImage& image)
 void LongCaptureSession::pinImage(const QImage& image, const QPoint& preferred,
                                   const QRect& available)
 {
-    QPixmap pixmap = QPixmap::fromImage(image);
-
-    // 长图可能比屏幕还高，钉图前等比缩放到可用区域内
-    const QSize logical = pixmap.size() / pixmap.devicePixelRatio();
+    // 保留拼接原图，只把初始显示尺寸适配到屏幕；滚轮缩放基于原图，细节可放大查看
+    const QPixmap pixmap = QPixmap::fromImage(image);
+    const QSizeF logical = pixmap.deviceIndependentSize();
     const QSize limit(int(available.width() * 0.9), int(available.height() * 0.9));
-    if (logical.width() > limit.width() || logical.height() > limit.height()) {
-        const qreal scale = qMin(qreal(limit.width()) / logical.width(),
-                                 qreal(limit.height()) / logical.height());
-        pixmap = pixmap.scaled(pixmap.size() * scale, Qt::KeepAspectRatio,
-                               Qt::SmoothTransformation);
+    qreal fitScale = 1.0;
+    if (!logical.isEmpty()) {
+        fitScale = qMin(1.0, qMin(limit.width() / logical.width(),
+                                  limit.height() / logical.height()));
     }
 
-    auto* pin = new PinWindow(pixmap);
+    auto* pin = new PinWindow(pixmap, fitScale);
     const QPoint position(
         qBound(available.left(), preferred.x(), available.right() - pin->width() + 1),
         qBound(available.top(), preferred.y(), available.bottom() - pin->height() + 1));

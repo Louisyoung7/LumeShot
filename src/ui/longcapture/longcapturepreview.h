@@ -6,6 +6,7 @@
 
 class QKeyEvent;
 class QMouseEvent;
+class QWheelEvent;
 
 class LongCapturePreview : public QWidget {
     Q_OBJECT
@@ -26,12 +27,14 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
 private:
     enum class Button { Confirm = 0, Save = 1, Pin = 2, Cancel = 3 };
     static constexpr Button kNoButton = static_cast<Button>(-1);
 
+    void applyDisplaySize();
     QRect imageRect() const;
     QRect toolbarRect() const;
     QRect buttonRect(Button button) const;
@@ -39,7 +42,9 @@ private:
     void triggerButton(Button button);
 
     QImage m_image;
+    QSize m_baseSize;     // 按屏幕适配出的初始显示尺寸
     QSize m_displaySize;  // 缩放后的显示尺寸（逻辑像素）
+    qreal m_zoom = 1.0;
     Button m_hoveredButton = kNoButton;
     Button m_pressedButton = kNoButton;
     bool m_pressingButton = false;

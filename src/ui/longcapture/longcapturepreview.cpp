@@ -6,6 +6,9 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QShowEvent>
+#include <QWheelEvent>
+
+#include <cmath>
 
 namespace {
 constexpr int kBorderWidth = 3;              // 亮色边框宽度
@@ -17,6 +20,8 @@ constexpr int kSidebarGap = 8;               // 图片与侧边栏的间距
 constexpr int kToolbarHeight = kButtonSize * 4 + kButtonGap * 3;
 constexpr qreal kMaxWidthRatio = 0.7;        // 预览占屏幕可用区域的最大比例
 constexpr qreal kMaxHeightRatio = 0.85;
+constexpr qreal kMinZoom = 0.1;             // 相对初始适配尺寸的缩放范围
+constexpr qreal kMaxZoom = 8.0;
 const QColor kAccentColor(0x33, 0xaa, 0xff);
 } // namespace
 
@@ -31,7 +36,7 @@ LongCapturePreview::LongCapturePreview(const QImage& image, const QRect& availab
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
     setCursor(Qt::OpenHandCursor);
-    setToolTip(QStringLiteral("Enter 确认，Esc 取消，拖动可移动预览"));
+    setToolTip(QStringLiteral("Enter 确认，Esc 取消，滚轮缩放，拖动可移动预览"));
 
     const qreal dpr = m_image.devicePixelRatio() > 0.0 ? m_image.devicePixelRatio() : 1.0;
     const QSize logical(qMax(1, qRound(m_image.width() / dpr)),
@@ -39,8 +44,13 @@ LongCapturePreview::LongCapturePreview(const QImage& image, const QRect& availab
     const qreal scale =
         qMin(1.0, qMin(available.width() * kMaxWidthRatio / logical.width(),
                       available.height() * kMaxHeightRatio / logical.height()));
-    m_displaySize = (QSizeF(logical) * scale).toSize();
+    m_baseSize = (QSizeF(logical) * scale).toSize();
+    m_displaySize = m_baseSize;
+    applyDisplaySize();
+}
 
+void LongCapturePreview::applyDisplaySize()
+{
     const int height = qMax(m_displaySize.height() + kFrame * 2, kToolbarHeight + kFrame * 2);
     setFixedSize(m_displaySize.width() + kFrame * 2 + kSidebarGap + kButtonSize, height);
 }
@@ -163,6 +173,36 @@ void LongCapturePreview::mouseReleaseEvent(QMouseEvent* event)
         return;
     m_dragging = false;
     setCursor(m_hoveredButton == kNoButton ? Qt::OpenHandCursor : Qt::PointingHandCursor);
+}
+
+void LongCapturePreview::wheelEvent(QWheelEvent* event)
+{
+    const int delta = event->angleDelta().y();
+    if (delta == 0) {
+        event->ignore();
+        return;
+    }
+
+    const qreal target = qBound(kMinZoom, m_zoom * std::pow(1.1, delta / 120.0), kMaxZoom);
+    if (qFuzzyCompare(target, m_zoom)) {
+        event->accept();
+        return;
+    }
+
+    // 以光标下的图像位置为锚点缩放，与钉图保持一致
+    const QPoint globalPos = event->globalPosition().toPoint();
+    const QPoint local = mapFromGlobal(globalPos);
+    const qreal anchorX = qreal(local.x() - kFrame) / m_displaySize.width();
+    const qreal anchorY = qreal(local.y() - kFrame) / m_displaySize.height();
+
+    m_zoom = target;
+    m_displaySize = (QSizeF(m_baseSize) * m_zoom).toSize();
+    applyDisplaySize();
+
+    const QPointF newLocal(kFrame + anchorX * m_displaySize.width(),
+                           kFrame + anchorY * m_displaySize.height());
+    move(pos() + (globalPos - mapToGlobal(newLocal.toPoint())));
+    event->accept();
 }
 
 void LongCapturePreview::showEvent(QShowEvent* event)
