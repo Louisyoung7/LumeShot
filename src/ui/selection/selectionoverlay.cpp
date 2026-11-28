@@ -90,8 +90,8 @@ void SelectionOverlay::paintEvent(QPaintEvent* event)
     painter.setBrush(QColor(0, 0, 0, 170));
     painter.drawRoundedRect(bar, 8, 8);
 
-    for (ToolButton button :
-         {ToolButton::Confirm, ToolButton::Pin, ToolButton::LongShot, ToolButton::Cancel}) {
+    for (ToolButton button : {ToolButton::Confirm, ToolButton::Save, ToolButton::Pin,
+                              ToolButton::LongShot, ToolButton::Cancel}) {
         const QRect area = buttonRect(button);
         if (button == m_hoveredButton || button == m_pressedButton) {
             painter.setBrush(QColor(255, 255, 255, m_pressedButton == button ? 70 : 35));
@@ -104,6 +104,9 @@ void SelectionOverlay::paintEvent(QPaintEvent* event)
         switch (button) {
         case ToolButton::Confirm:
             toolbaricons::drawCheckIcon(painter, area, iconColor);
+            break;
+        case ToolButton::Save:
+            toolbaricons::drawSaveIcon(painter, area, iconColor);
             break;
         case ToolButton::Pin:
             toolbaricons::drawPinIcon(painter, area, iconColor);
@@ -243,7 +246,7 @@ QRect SelectionOverlay::toolbarRect() const
     if (selection.isEmpty())
         return {};
 
-    const int toolbarHeight = kButtonSize * 4 + kButtonGap * 3;
+    const int toolbarHeight = kButtonSize * 5 + kButtonGap * 4;
 
     // 优先放在选区右侧，右侧放不下就翻到左侧
     int x = selection.right() + kToolbarOffset;
@@ -272,8 +275,8 @@ SelectionOverlay::ToolButton SelectionOverlay::buttonAt(const QPoint& position) 
 {
     if (m_dragging || currentSelection().isEmpty())
         return ToolButton::None;
-    for (ToolButton button :
-         {ToolButton::Confirm, ToolButton::Pin, ToolButton::LongShot, ToolButton::Cancel}) {
+    for (ToolButton button : {ToolButton::Confirm, ToolButton::Save, ToolButton::Pin,
+                              ToolButton::LongShot, ToolButton::Cancel}) {
         if (buttonRect(button).contains(position))
             return button;
     }
@@ -286,6 +289,18 @@ void SelectionOverlay::triggerButton(ToolButton button)
     case ToolButton::Confirm:
         confirmSelection();
         break;
+    case ToolButton::Save: {
+        const QRect selection = currentSelection();
+        if (selection.isEmpty()) {
+            emit canceled();
+            close();
+            break;
+        }
+        const QPixmap capture = ScreenCapture::crop(m_desktop, selection);
+        close();
+        emit saveRequested(capture);
+        break;
+    }
     case ToolButton::Pin: {
         const QRect selection = currentSelection();
         if (selection.isEmpty()) {

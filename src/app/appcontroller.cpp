@@ -16,6 +16,7 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDir>
+#include <QFileDialog>
 #include <QImage>
 #include <QMessageBox>
 #include <QPixmap>
@@ -39,6 +40,10 @@ bool AppController::start()
     connect(m_longCapture, &LongCaptureSession::finished, this,
             [this](const QImage& image, const QRect&) {
                 m_output->deliver(QPixmap::fromImage(image), QStringLiteral("长截图"));
+            });
+    connect(m_longCapture, &LongCaptureSession::saveRequested, this,
+            [this](const QImage& image) {
+                saveToDirectory(QPixmap::fromImage(image), QStringLiteral("长截图"));
             });
 
     m_tray = new TrayController(this);
@@ -110,6 +115,10 @@ void AppController::captureRegion()
             });
     connect(m_overlay, &SelectionOverlay::longCaptureRequested, this,
             &AppController::startLongCapture);
+    connect(m_overlay, &SelectionOverlay::saveRequested, this,
+            [this](const QPixmap& capture) {
+                saveToDirectory(capture, QStringLiteral("区域截图"));
+            });
     // 遮罩真正销毁后才释放忙碌状态，避免关闭过程中热键重入
     connect(m_overlay, &QObject::destroyed, this, [this] {
         m_capturing = false;
@@ -152,6 +161,25 @@ void AppController::captureActiveWindow()
         return;
     }
     m_output->deliver(capture, QStringLiteral("窗口截图"));
+}
+
+void AppController::saveToDirectory(const QPixmap& capture, const QString& title)
+{
+    if (m_saving)
+        return;
+    m_saving = true;
+
+    // 延迟一轮事件循环，等调用方的置顶窗口关闭后再弹模态对话框，避免被遮挡
+    QTimer::singleShot(0, this, [this, capture, title] {
+        const QString directory = QFileDialog::getExistingDirectory(
+            m_tray->dialogParent(), QStringLiteral("选择图片保存位置"),
+            m_settings.effectiveSaveDirectory());
+
+        if (!directory.isEmpty())
+            m_output->deliver(capture, title, directory);
+
+        m_saving = false;
+    });
 }
 
 void AppController::startLongCapture(const QRect& region)
@@ -280,5 +308,5 @@ void AppController::notify(const QString& title, const QString& message) const
 
 bool AppController::busy() const
 {
-    return m_capturing || (m_longCapture && m_longCapture->isActive());
+    return m_capturing || m_saving || (m_longCapture && m_longCapture->isActive());
 }

@@ -9,6 +9,7 @@
 
 class GlobalHotKey;
 class LongCaptureSession;
+class QPixmap;
 class ScreenshotOutput;
 class SelectionOverlay;
 class TrayController;
@@ -26,6 +27,7 @@ private:
     void captureFullScreen();
     void captureActiveWindow();
     void startLongCapture(const QRect& region);
+    void saveToDirectory(const QPixmap& capture, const QString& title);
     void openSettings();
     void updateHotkeyLabel();
     void notify(const QString& title, const QString& message) const;
@@ -38,4 +40,5 @@ private:
     LongCaptureSession* m_longCapture = nullptr;
     SelectionOverlay* m_overlay = nullptr;
     bool m_capturing = false;
+    bool m_saving = false;
 };

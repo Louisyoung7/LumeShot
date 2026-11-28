@@ -50,6 +50,17 @@ inline void drawLongShotIcon(QPainter& painter, const QRect& area, const QColor&
     painter.drawLine(center + QPointF(4, 2), center + QPointF(0, 7));
 }
 
+inline void drawSaveIcon(QPainter& painter, const QRect& area, const QColor& color)
+{
+    prepareIconPen(painter, color);
+    const QPointF center = area.center();
+    // 向下箭头落到横线上，表示保存到磁盘
+    painter.drawLine(center + QPointF(0, -9), center + QPointF(0, 5));
+    painter.drawLine(center + QPointF(-4, 1), center + QPointF(0, 5));
+    painter.drawLine(center + QPointF(4, 1), center + QPointF(0, 5));
+    painter.drawLine(center + QPointF(-7, 8), center + QPointF(7, 8));
+}
+
 inline void drawCrossIcon(QPainter& painter, const QRect& area, const QColor& color)
 {
     prepareIconPen(painter, color);

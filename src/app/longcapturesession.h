@@ -27,6 +27,8 @@ public:
 signals:
     // 预览确认：image 为拼接结果，region 为最初框选的区域
     void finished(const QImage& image, const QRect& region);
+    // 预览中选择保存位置：image 为拼接结果
+    void saveRequested(const QImage& image);
     void canceled();
     // 抓取阶段结束（预览尚未处理），用于收尾托盘里的长截图菜单
     void captureEnded();

@@ -180,6 +180,10 @@ void LongCaptureSession::showPreview(const QImage& image)
         m_active = false;
         emit finished(image, m_region);
     });
+    connect(preview, &LongCapturePreview::saveRequested, this, [this, image] {
+        m_active = false;
+        emit saveRequested(image);
+    });
     connect(preview, &LongCapturePreview::pinRequested, this, [this, image, available] {
         m_active = false;
         pinImage(image, m_region.topLeft(), available);

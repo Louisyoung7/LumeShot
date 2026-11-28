@@ -19,6 +19,8 @@ signals:
     void pinRequested(const QPixmap& capture, const QPoint& globalTopLeft);
     // 长截图：用户选中的桌面区域
     void longCaptureRequested(const QRect& globalRegion);
+    // 一次性保存到用户选择的目录，capture 已裁剪好
+    void saveRequested(const QPixmap& capture);
     void canceled();
 
 protected:
@@ -31,7 +33,14 @@ protected:
     void hideEvent(QHideEvent* event) override;
 
 private:
-    enum class ToolButton { None = -1, Confirm = 0, Pin = 1, LongShot = 2, Cancel = 3 };
+    enum class ToolButton {
+        None = -1,
+        Confirm = 0,
+        Save = 1,
+        Pin = 2,
+        LongShot = 3,
+        Cancel = 4
+    };
 
     QRect currentSelection() const;
     QRect toolbarRect() const;

@@ -16,7 +16,9 @@ public:
 
     void setSettings(const AppSettings& settings);
 
-    void deliver(const QPixmap& capture, const QString& title);
+    // directoryOverride 非空时只保存到该目录，不改变全局设置，且不受 autoSave 开关限制
+    void deliver(const QPixmap& capture, const QString& title,
+                 const QString& directoryOverride = QString());
 
 signals:
     void messageReady(const QString& title, const QString& message);

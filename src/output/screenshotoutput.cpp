@@ -18,7 +18,8 @@ void ScreenshotOutput::setSettings(const AppSettings& settings)
     m_settings = settings;
 }
 
-void ScreenshotOutput::deliver(const QPixmap& capture, const QString& title)
+void ScreenshotOutput::deliver(const QPixmap& capture, const QString& title,
+                               const QString& directoryOverride)
 {
     if (capture.isNull())
         return;
@@ -30,8 +31,12 @@ void ScreenshotOutput::deliver(const QPixmap& capture, const QString& title)
         results << QStringLiteral("已复制到剪贴板");
     }
 
-    if (m_settings.autoSave) {
-        const QDir directory(m_settings.effectiveSaveDirectory());
+    // 显式选择保存位置时，即使关闭了自动保存也照常保存到该目录
+    if (m_settings.autoSave || !directoryOverride.isEmpty()) {
+        const QString directoryPath = directoryOverride.isEmpty()
+                                          ? m_settings.effectiveSaveDirectory()
+                                          : directoryOverride;
+        const QDir directory(directoryPath);
         if (!directory.exists() && !directory.mkpath(QStringLiteral("."))) {
             qWarning() << "Cannot create screenshot directory:" << directory.path();
             results << QStringLiteral("保存失败：无法创建目录 %1").arg(directory.path());

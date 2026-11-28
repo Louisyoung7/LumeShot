@@ -17,6 +17,7 @@ public:
 signals:
     void accepted();      // 确认：交给 AppController 复制/保存
     void pinRequested();  // 钉图
+    void saveRequested(); // 一次性保存到用户选择的目录
     void canceled();
 
 protected:
@@ -28,7 +29,7 @@ protected:
     void showEvent(QShowEvent* event) override;
 
 private:
-    enum class Button { Confirm = 0, Pin = 1, Cancel = 2 };
+    enum class Button { Confirm = 0, Save = 1, Pin = 2, Cancel = 3 };
     static constexpr Button kNoButton = static_cast<Button>(-1);
 
     QRect imageRect() const;

@@ -14,7 +14,7 @@ constexpr int kFrame = kBorderWidth + kEdgeWidth;
 constexpr int kButtonSize = 36;
 constexpr int kButtonGap = 4;
 constexpr int kSidebarGap = 8;               // 图片与侧边栏的间距
-constexpr int kToolbarHeight = kButtonSize * 3 + kButtonGap * 2;
+constexpr int kToolbarHeight = kButtonSize * 4 + kButtonGap * 3;
 constexpr qreal kMaxWidthRatio = 0.7;        // 预览占屏幕可用区域的最大比例
 constexpr qreal kMaxHeightRatio = 0.85;
 const QColor kAccentColor(0x33, 0xaa, 0xff);
@@ -68,7 +68,7 @@ void LongCapturePreview::paintEvent(QPaintEvent* event)
     painter.setBrush(QColor(0, 0, 0, 170));
     painter.drawRoundedRect(bar, 8, 8);
 
-    for (Button button : {Button::Confirm, Button::Pin, Button::Cancel}) {
+    for (Button button : {Button::Confirm, Button::Save, Button::Pin, Button::Cancel}) {
         const QRect area = buttonRect(button);
         if (button == m_hoveredButton) {
             const bool pressed = m_pressingButton && m_pressedButton == button;
@@ -79,6 +79,9 @@ void LongCapturePreview::paintEvent(QPaintEvent* event)
         switch (button) {
         case Button::Confirm:
             toolbaricons::drawCheckIcon(painter, area, iconColor);
+            break;
+        case Button::Save:
+            toolbaricons::drawSaveIcon(painter, area, iconColor);
             break;
         case Button::Pin:
             toolbaricons::drawPinIcon(painter, area, iconColor);
@@ -192,7 +195,7 @@ QRect LongCapturePreview::buttonRect(Button button) const
 
 LongCapturePreview::Button LongCapturePreview::buttonAt(const QPoint& position) const
 {
-    for (Button button : {Button::Confirm, Button::Pin, Button::Cancel}) {
+    for (Button button : {Button::Confirm, Button::Save, Button::Pin, Button::Cancel}) {
         if (buttonRect(button).contains(position))
             return button;
     }
@@ -204,6 +207,9 @@ void LongCapturePreview::triggerButton(Button button)
     switch (button) {
     case Button::Confirm:
         emit accepted();
+        break;
+    case Button::Save:
+        emit saveRequested();
         break;
     case Button::Pin:
         emit pinRequested();
